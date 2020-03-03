@@ -1,0 +1,41 @@
+{
+  "join_room": "JOIN ROOM",
+  "rooms": [
+    {
+      "text": "Join",
+      "value": "join"
+    },
+    {
+      "text": "Create",
+      "value": "create"
+    }
+  ],
+  "role": {
+    "Villager":"Villager",
+    "WereWolf":"WereWolf",
+    "Tanner":"Tanner",
+    "Hunter":"Hunter",
+    "Insomanic":"Insomanic",
+    "Doppelganger":"Doppelganger",
+    "BodyGuard":"BodyGuard",
+    "DreamWolf":"DreamWolf",
+    "Sentinel":"Sentinel",
+    "DoppelGanger":"DoppelGanger",
+    "Werewolves":"Werewolves",
+    "AlphaWolf":"AlphaWolf",
+    "MysticWolf":"MysticWolf",
+    "Minion":"Minion",
+    "Mason":"Mason",
+    "Seer":"Seer",
+    "ApprenticeSeer":"ApprenticeSeer",
+    "ParanormalInvestigator":"ParanormalInvestigator",
+    "Robber":"Robber",
+    "Witch":"Witch",
+    "TroubleMaker":"TroubleMaker",
+    "VillageIdiot":"VillageIdiot",
+    "Drunk":"Drunk",
+    "Insomniac":"Insomniac",
+    "Revealer":"Revealer",
+    "Curator":"Curator"
+  }
+}
