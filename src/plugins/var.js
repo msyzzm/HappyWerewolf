@@ -4,13 +4,13 @@ const RoleList = {
   Villager3: 3,
   WereWolf: 4,
   WereWolf2: 5,
-  Seer: 6,
-  Robber: 7,
-  TroubleMaker: 8,
-  Drunk: 9,
-  Insomanic: 10,
-  Minion: 11,
-  Witch: 12,
+  Minion: 7,
+  Seer: 9,
+  Robber: 12,
+  Witch: 13,
+  TroubleMaker: 14,
+  Drunk: 16,
+  Insomanic: 17,
   property: {
     1: {
       name: "Villager",
@@ -32,31 +32,31 @@ const RoleList = {
       name: "WereWolf",
       order: 4,
     },
-    6: {
+    9: {
       name: "Seer",
       order: 9,
     },
-    7: {
+    12: {
       name: "Robber",
       order: 12,
     },
-    8: {
+    14: {
       name: "TroubleMaker",
       order: 14,
     },
-    9: {
+    16: {
       name: 'Drunk',
       order: 16,
     },
-    10: {
+    17: {
       name: 'Insomanic',
       order: 17,
     },
-    11: {
+    7: {
       name: 'Minion',
       order: 7,
     },
-    12: {
+    13: {
       name: 'Witch',
       order: 13,
     },
@@ -112,9 +112,9 @@ const RoleList = {
 function randomNum(minNum, maxNum) {
   switch (arguments.length) {
     case 1:
-      return parseInt(Math.random() * minNum + 1, 10);
+      return Math.floor(Math.random() * minNum);
     case 2:
-      return parseInt(Math.random() * (maxNum - minNum + 1) + minNum, 10);
+      return Math.floor(Math.random() * (maxNum - minNum) + minNum);
     default:
       return 0;
   }

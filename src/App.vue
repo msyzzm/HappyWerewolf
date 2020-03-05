@@ -1,8 +1,8 @@
 <template>
   <div id="app">
     <div id="nav">
-      <router-link to="/">{{$t('join_room')}}</router-link> |
-      <router-link to="/about">About</router-link>
+      <router-link to="/">{{$t('game_name')}}</router-link> |
+      <router-link to="/about">{{$t('about')}}</router-link>
     </div>
     <router-view/>
   </div>

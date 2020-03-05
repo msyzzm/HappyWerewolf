@@ -54,6 +54,7 @@ const GameData = {
 }
 
 const GameEvent = {
+  New: 9,
   GameStart: 10,
   DiscussStart: 11,
   WolfSubmit: 15,
@@ -69,6 +70,8 @@ const GameEvent = {
   InsomanicResult: 80,
   WitchSubmit: 90,
   WitchResult: 91,
+  RoleSubmit: 100,
+  RoleResult: 110,
   VoteSubmit: 999,
   VoteResult: 1000,
 }

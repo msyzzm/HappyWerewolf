@@ -1,5 +1,19 @@
 {
+  "game_name": "Funny Werewolf",
+  "about": "about",
+  "submit": "submit",
+  "next_game": "NEXT GAME",
+  "start_game":"START GAME",
   "join_room": "JOIN ROOM",
+  "room_id": "Room ID",
+  "room_copy": "Room ID Copied",
+  "join_or_create": "Join Or Create Room",
+  "your_name": "Your Name",
+  "name": "Name",
+  "your_role": "Your role is",
+  "vote": "vote",
+  "valid": "valid",
+  "invalid": "invalid",
   "rooms": [
     {
       "text": "Join",
