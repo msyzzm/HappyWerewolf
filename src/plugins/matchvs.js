@@ -19,12 +19,10 @@ function init() {
 
     if (typeof BK != "undefined" || typeof FBInstant != "undefined") {
       window.MVS.SetWss && window.MVS.SetWss(true);
-      console.log("use wss");
     }
 
-    console.log("load matchvs.all.js success");
   } catch (error) {
-    console.error("try load matchvs JS fail," + error.message);
+    // TODO
   }
 }
 

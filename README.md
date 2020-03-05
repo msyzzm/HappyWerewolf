@@ -1,4 +1,4 @@
-# werewolf
+# HappyWerewolf
 
 ## Project setup
 ```
