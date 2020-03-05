@@ -13,7 +13,6 @@ function loadLocaleMessages () {
       messages[locale] = locales(key)
     }
   })
-  console.log(process.env.VUE_APP_I18N_LOCALE);
   return messages
 }
 
