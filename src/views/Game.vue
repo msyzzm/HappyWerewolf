@@ -120,7 +120,7 @@
       </b-list-group>
     </b-card>
     
-    <b-card header="Debug" style="display: none;">
+    <b-card header="Debug" style="">
       <b-button v-b-toggle.collapse-debug>Debug</b-button>
       <b-collapse id="collapse-debug" class="mt-2">
         <b-card title="RoomPlayerNumber">{{playerNumber}}</b-card>
@@ -152,10 +152,10 @@ init();
 export default {
   created(){
     //注册监听刷新和关闭
-    window.addEventListener('beforeunload', this.updateHandler);
+    // window.addEventListener('beforeunload', this.updateHandler);
   },
   destroyed(){
-    window.removeEventListener('beforeunload', this.updateHandler);
+    // window.removeEventListener('beforeunload', this.updateHandler);
   },
   mounted() {
     response.initResponse = function(status) {
@@ -264,6 +264,8 @@ export default {
           title: '提示',
           autoHideDelay: 5000,
         })
+
+        this.sendJoinRoom();
       }
     }.bind(this);
     response.joinRoomNotify = function(roomUserInfo) {
@@ -564,6 +566,15 @@ export default {
         this.roleSubmit = {};
         this.voteResult = {};
         this.voteShow = false;
+      }
+      else if(msg.event == GameEvent.JoinRoomNotify){
+        let roomUserInfo = msg.roomUserInfo;
+        if(roomUserInfo.userID == this.registerRsp.userID) return;
+        this.$bvToast.toast(roomUserInfo.userProfile+this.$t('join_room'), {
+          title: 'matchvs',
+          autoHideDelay: 1000,
+        })
+        this.roomUserInfoList.push(roomUserInfo);
       }
     },
     //角色投票
@@ -998,6 +1009,15 @@ export default {
     // 刷新或关闭页面时
     updateHandler(){
       engine.leaveRoom("走了");
+    },
+    sendJoinRoom(){
+      this.sendMsg({
+        event: GameEvent.JoinRoomNotify,
+        roomUserInfo: {
+          userID: this.registerRsp.userID,
+          userProfile: this.playerForm.name,
+        }
+      })
     }
   }
 };
