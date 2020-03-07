@@ -120,7 +120,7 @@
       </b-list-group>
     </b-card>
     
-    <b-card header="Debug">
+    <b-card header="Debug" style="display: none;">
       <b-button v-b-toggle.collapse-debug>Debug</b-button>
       <b-collapse id="collapse-debug" class="mt-2">
         <b-card title="RoomPlayerNumber">{{playerNumber}}</b-card>
