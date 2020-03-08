@@ -179,7 +179,7 @@
           <b-card title="waitRoles">{{waitRoles}}</b-card>
           <b-card title="waitUsers">{{waitUsers}}</b-card>
           <b-card title="voteResult">{{voteResult}}</b-card>
-          <b-card title="roomUserInfoList">{{roomUserInfoList}}</b-card>
+          <b-card title="orderRoomUserInfoList">{{orderRoomUserInfoList}}</b-card>
           <b-card title="roomInfo">{{roomInfo}}</b-card>
           <b-card title="originRoleUserMap">{{originRoleUserMap}}</b-card>
           <b-card title="roleUserMap">{{roleUserMap}}</b-card>
