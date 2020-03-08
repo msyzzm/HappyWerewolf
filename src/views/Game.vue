@@ -1117,7 +1117,6 @@ export default {
     },
     // 刷新或关闭页面时
     updateHandler(){
-      console.log("beforeunload");
       engine.leaveRoom("走了");
     },
     sendJoinRoomNotify(){
