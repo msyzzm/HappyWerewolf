@@ -2,6 +2,9 @@
   <b-container>
     <b-card-group columns>
     <b-card v-if="playerForm.show">
+      <template v-slot:header>
+        <h3 class="mb-0">开始游戏</h3>
+      </template>
       <b-form id="player-from" @submit.prevent="onSubmit">
         <b-form-group id="input-1-group">
           <b-form-input id="input-1" v-model="playerForm.name" required :placeholder="$t('your_name')"></b-form-input>
@@ -15,19 +18,29 @@
         <b-button type="submit" variant="primary">{{$t("submit")}}</b-button>
       </b-form>
     </b-card>
-    <b-card header="房间信息" v-if="playerInfo.show">
-      {{$t('your_name')+":"+playerForm.name}}
-      <br>
-      {{$t('room_id')+":"+roomInfo.roomID}}
-      <h6>玩家列表</h6>
-      <b-button-group vertical>
-        <b-button v-for="(value,index) in this.roomUserInfoList" :key="index">
-          {{value.userProfile}}
-        </b-button>
-      </b-button-group>
+    <b-card v-if="playerInfo.show">
+      <template v-slot:header>
+        <h3 class="mb-0">房间信息</h3>
+      </template>
+      <b-card-text>
+        {{$t('your_name')+":"+playerForm.name}}
+        <br>
+        {{$t('room_id')+":"+roomInfo.roomID}}
+      </b-card-text>
+      <b-card-text>
+        <h6>玩家列表</h6>
+        <b-button-group vertical>
+          <b-button v-for="(value,index) in this.roomUserInfoList" :key="index">
+            {{value.userProfile}}
+          </b-button>
+        </b-button-group>
+      </b-card-text>
     </b-card>
 
-    <b-card header="游戏设定" v-if="settingForm.show">
+    <b-card v-if="settingForm.show">
+      <template v-slot:header>
+        <h3 class="mb-0">游戏设定</h3>
+      </template>
       <b-form id="setting-from" @submit.prevent="onStartGame">
         <b-form-group
           :invalid-feedback="'当前玩家数量为'+this.playerNumber+'，请设置角色数量'+(this.playerNumber+3)"
@@ -45,21 +58,30 @@
       </b-form>
     </b-card>
 
-    <b-card header="游戏信息" v-if="playerPanel.show">
-      <h6>本局游戏身份</h6>
+    <b-card v-if="playerPanel.show">
+      <template v-slot:header>
+        <h3 class="mb-0">本局游戏身份</h3>
+      </template>
+      
       <b-button-group vertical>
         <b-button v-for="(value,index) in this.roleUserMap" :key="index" v-b-tooltip.hover :title="$t('role_des.'+roleList.property[index].name)">
           {{$t('role.'+roleList.property[index].name)}}
         </b-button>
       </b-button-group>
       <div id="player-panel" class="p-1">
-        <p>{{$t("your_role")}}{{$t('role.'+roleList.property[playerRole].name)}}</p>
+        <p>
+          {{$t("your_role")}}
+          <strong>{{$t('role.'+roleList.property[playerRole].name)}}</strong>
+        </p>
         <p>{{$t('role_des.'+roleList.property[playerRole].name)}}</p>
       </div>
     </b-card>
 
-    <b-card header="操作" v-if="playerPanel.show">
-      <p>{{playerPanel.text}}</p>
+    <b-card v-if="playerPanel.show">
+      <template v-slot:header>
+        <h3 class="mb-0">操作</h3>
+      </template>
+      <p style="white-space: pre;">{{playerPanel.text}}</p>
       <b-form id="wolf-form" @submit.prevent="onWolfSubmit" v-show="wolfForm.show">
         <b-form-group :invalid-feedback="$t('invalid')"
           :state="wolfFormState">
@@ -77,7 +99,7 @@
       <b-form id="robber-form" @submit.prevent="onRobberSubmit" v-show="robberForm.show">
         <b-form-group :invalid-feedback="$t('invalid')"
           :state="robberFormState">
-          <b-form-radio-group v-model="robberForm.selected" :options="robberForm.options" buttons stacked></b-form-radio-group>
+          <b-form-checkbox-group v-model="robberForm.selected" :options="robberForm.options" buttons stacked></b-form-checkbox-group>
         </b-form-group>
         <b-button type="submit" variant="primary">{{$t("submit")}}</b-button>
       </b-form>
@@ -103,8 +125,8 @@
         <b-button type="submit" variant="primary">{{$t("submit")}}</b-button>
       </b-form>
 
-      <b-form id="vote-form" @submit.prevent="onVoteSubmit" v-show="voteForm.show">
-        <b-form-group :invalid-feedback="$t('vote')"
+      <!-- <b-form id="vote-form" @submit.prevent="onVoteSubmit" v-show="voteForm.show">
+        <b-form-group :invalid-feedback="$t('vote_invalid')" :label="$t('vote')"
           :state="voteFormState">
           <b-form-radio-group v-model="voteForm.selected" :options="voteForm.options" buttons stacked></b-form-radio-group>
         </b-form-group>
@@ -117,22 +139,48 @@
         <b-list-group-item v-show="this.isOwner" button variant="primary" @click="onNewGame">
           {{$t("next_game")}}
         </b-list-group-item>
+      </b-list-group> -->
+    </b-card>
+
+    <b-card v-if="voteForm.show">
+      <template v-slot:header>
+        <h3 class="mb-0">{{$t('vote')}}</h3>
+      </template>
+      <b-form id="vote-form" @submit.prevent="onVoteSubmit" v-show="voteForm.show">
+        <b-form-group :invalid-feedback="$t('vote_invalid')"
+          :state="voteFormState">
+          <b-form-radio-group v-model="voteForm.selected" :options="voteForm.options" buttons stacked></b-form-radio-group>
+        </b-form-group>
+        <b-button type="submit" variant="primary">{{$t("submit")}}</b-button>
+      </b-form>
+    </b-card>
+
+    <b-card v-if="this.voteShow" no-body>
+      <template v-slot:header v-if="this.voteShow">
+        <h3 class="mb-0">投票结果</h3>
+      </template>
+      <b-list-group flush>
+        <b-list-group-item v-for="(value,index) in this.voteResult" :key="index">
+          {{getUserNameByuserID(index)+" "+ $t('role.'+roleList.property[getRoleByuserID(index)].name) +" 投票给 " + getUserNameByuserID(value)}}
+        </b-list-group-item>
+        <b-list-group-item v-show="this.isOwner" button variant="primary" @click="onNewGame">
+          {{$t("next_game")}}
+        </b-list-group-item>
       </b-list-group>
     </b-card>
-    
+
     <b-card header="Debug" style="">
       <b-button v-b-toggle.collapse-debug>Debug</b-button>
       <b-collapse id="collapse-debug" class="mt-2">
-        <b-card title="RoomPlayerNumber">{{playerNumber}}</b-card>
-        <b-card title="totalRoles 需要结算的角色">{{totalRoles}}</b-card>
-        <b-card title="registerRsp">{{registerRsp}}</b-card>
-        <b-card title="loginRsp">{{loginRsp}}</b-card>
+        <b-card title="totalRoles">{{totalRoles}}</b-card>
+        <b-card title="waitRoles">{{waitRoles}}</b-card>
+        <b-card title="waitUsers">{{waitUsers}}</b-card>
+        <b-card title="voteResult">{{voteResult}}</b-card>
         <b-card title="roomUserInfoList">{{roomUserInfoList}}</b-card>
         <b-card title="roomInfo">{{roomInfo}}</b-card>
         <b-card title="originRoleUserMap">{{originRoleUserMap}}</b-card>
         <b-card title="roleUserMap">{{roleUserMap}}</b-card>
         <b-card title="roleSubmit">{{roleSubmit}}</b-card>
-        <b-card title="voteResult">{{voteResult}}</b-card>
       </b-collapse>
     </b-card>
     </b-card-group>
@@ -152,17 +200,17 @@ init();
 export default {
   created(){
     //注册监听刷新和关闭
-    // window.addEventListener('beforeunload', this.updateHandler);
+    window.addEventListener('beforeunload', this.updateHandler);
   },
   destroyed(){
-    // window.removeEventListener('beforeunload', this.updateHandler);
+    window.removeEventListener('beforeunload', this.updateHandler);
   },
   mounted() {
     response.initResponse = function(status) {
       if (status == 200) {
         this.$bvToast.toast(this.$t('init')+this.$t('success'), {
           title: 'matchvs',
-          autoHideDelay: 1000,
+          autoHideDelay: 2000,
         })
       }
     }.bind(this);
@@ -172,7 +220,7 @@ export default {
       if (registerRsp.status == 0){
         this.$bvToast.toast(this.$t('register')+this.$t('success'), {
           title: 'matchvs',
-          autoHideDelay: 1000,
+          autoHideDelay: 2000,
         })
         engine.login(registerRsp.userID, registerRsp.token, "dev-miao");
       }
@@ -182,7 +230,7 @@ export default {
       if(loginRsp.status == 200){
         this.$bvToast.toast(this.$t('login')+this.$t('success'), {
           title: 'matchvs',
-          autoHideDelay: 1000,
+          autoHideDelay: 2000,
         })
         if (this.playerForm.roomSelected == "join") {
           engine.joinRoom(this.playerForm.roomID, this.playerForm.name);
@@ -203,7 +251,7 @@ export default {
       if (response.status == 200) {
         this.$bvToast.toast(this.$t('create_room')+this.$t('success'), {
           title: 'matchvs',
-          autoHideDelay: 1000,
+          autoHideDelay: 2000,
         })
 
         this.roomInfo.roomID = response.roomID;
@@ -213,6 +261,8 @@ export default {
           userProfile: this.playerForm.name
         });
         this.settingForm.show = true;
+        this.playerInfo.show = true;
+        this.playerForm.show = false;
 
         //复制房间ID到剪贴板
         const input = document.createElement('input');
@@ -224,11 +274,9 @@ export default {
           document.execCommand('copy');
         }
         document.body.removeChild(input);
-        this.playerInfo.show = true;
-        this.playerForm.show = false;
 
         this.$bvToast.toast(this.$t('room_copy'), {
-          title: '提示',
+          title: this.$t('prompt'),
           autoHideDelay: 5000,
         })
       }
@@ -237,7 +285,7 @@ export default {
       if(status == 200){
         this.$bvToast.toast(this.$t('join_room')+this.$t('success'), {
           title: 'matchvs',
-          autoHideDelay: 1000,
+          autoHideDelay: 2000,
         })
 
         this.roomUserInfoList = Array.from(roomUserInfoList);
@@ -246,54 +294,49 @@ export default {
           userProfile: this.playerForm.name
         });
         this.roomInfo = roomInfo;
-        
-        //复制房间ID到剪贴板
-        const input = document.createElement('input');
-        input.setAttribute('readonly', 'readonly');
-        input.setAttribute('value', roomInfo.roomID);
-        document.body.appendChild(input);
-        input.select();
-        if (document.execCommand('copy')) {
-          document.execCommand('copy');
-        }
-        document.body.removeChild(input);
         this.playerInfo.show = true;
         this.playerForm.show = false;
 
-        this.$bvToast.toast(this.$t('room_copy'), {
-          title: '提示',
-          autoHideDelay: 5000,
-        })
-
-        this.sendJoinRoom();
+        //加入房间通知（SDK有问题，不发通知）
+        this.sendJoinRoomNotify();
       }
     }.bind(this);
     response.joinRoomNotify = function(roomUserInfo) {
-      this.$bvToast.toast(roomUserInfo.userProfile+this.$t('join_room'), {
-        title: 'matchvs',
-        autoHideDelay: 1000,
-      })
-      this.roomUserInfoList.push(roomUserInfo);
+      this.receiveJoinRoomNotify(roomUserInfo);
     }.bind(this);
     response.joinOverResponse = function(joinOverRsp) {
       if(joinOverRsp.status == 200){
-        this.$bvToast.toast(this.$t('join_over')+this.$t('success'), {
+        this.$bvToast.toast(this.$t('join_over'), {
           title: 'matchvs',
-          autoHideDelay: 1000,
+          autoHideDelay: 2000,
+        })
+      }
+      
+      //结束加入房间通知（SDK有问题，不发通知）
+      this.sendJoinOverNotify();
+    }.bind(this);
+    response.joinOverNotify = function(joinOverInfo) {
+      this.receiveJoinOverNotify(joinOverInfo);
+    }.bind(this);
+    response.joinOpenResponse = function(joinOpenRsp) {
+      if(joinOpenRsp.status == 200){
+        this.$bvToast.toast(this.$t('join_open'), {
+          title: 'matchvs',
+          autoHideDelay: 2000,
         })
       }
     }.bind(this);
-    response.joinOverNotify = function(joinOverNotify) {
-      this.$bvToast.toast(joinOverNotify.roomID+this.$t('join_over'), {
+    response.joinOpenNotify = function(joinOpenInfo){
+      this.$bvToast.toast(this.$t('join_open')+joinOpenInfo.roomID, {
         title: 'matchvs',
-        autoHideDelay: 1000,
+        autoHideDelay: 2000,
       })
     }.bind(this);
     response.leaveRoomResponse = function(leaveRoomRsp){
       if(leaveRoomRsp.status == 200){
         this.$bvToast.toast(this.$t('leave_room')+this.$t('success'), {
           title: 'matchvs',
-          autoHideDelay: 1000,
+          autoHideDelay: 2000,
         })
       }
     };
@@ -303,7 +346,7 @@ export default {
       });
       this.$bvToast.toast(this.roomUserInfoList[index].userProfile+this.$t('leave_room'), {
         title: 'matchvs',
-        autoHideDelay: 1000,
+        autoHideDelay: 2000,
       })
       this.roomUserInfoList.splice(index, 1);
     }.bind(this);
@@ -390,7 +433,7 @@ export default {
       robberForm: {
         show: false,
         options: [],
-        selected: ""
+        selected: []
       },
       troubleMakerForm: {
         show: false,
@@ -414,6 +457,7 @@ export default {
       },
       totalRoles: [],
       waitRoles: [],
+      waitUsers: [],
       roleSubmit: {},
       voteResult: {},
       voteShow: false,
@@ -452,7 +496,8 @@ export default {
       return false;
     },
     robberFormState(){
-      return true;
+      if(this.robberForm.selected.length == 0 || this.robberForm.selected.length == 1) return true;
+      return false;
     },
     witchFormState(){
       if(this.witchForm.selected.length == 0) return true;
@@ -510,6 +555,10 @@ export default {
     receiveMsg(msg) {
       if (msg.event == GameEvent.GameStart) {
         this.onMvGameStart(msg.roleUserMap);
+        this.$bvToast.toast(this.$t('start_game'), {
+          title: this.$t('prompt'),
+          autoHideDelay: 2000,
+        })
       }
       //角色提交
       else if (msg.event == GameEvent.RoleSubmit) {
@@ -519,19 +568,46 @@ export default {
         let i = this.waitRoles.indexOf(msg.role);
         this.waitRoles.splice(i, 1);
         this.checkWaitRoles();
+
+        //自己显示通知
+        if(msg.role == this.playerRole){
+          this.$bvToast.toast(this.$t('submit')+this.$t('success'), {
+            title: this.$t('prompt'),
+            autoHideDelay: 2000,
+          })
+        }
+
       }
       //角色结果
       else if (msg.event == GameEvent.RoleResult) {
-        if(msg.roles.indexOf(this.playerRole)>=0) this.playerPanel.text = msg.result;
+        if(msg.roles.indexOf(this.playerRole)>=0) {
+          this.playerPanel.text = msg.result;
+          this.$bvToast.toast(this.$t('role_result'), {
+            title: this.$t('prompt'),
+            autoHideDelay: 2000,
+          })
+        }
       }
       //开始讨论
       else if (msg.event == GameEvent.DiscussStart){
         this.startDiscuss();
+        this.$bvToast.toast(this.$t('start_discuss'), {
+          title: this.$t('prompt'),
+          autoHideDelay: 2000,
+        })
       }
       //投票提交
       else if (msg.event == GameEvent.VoteSubmit) {
-        this.voteResult[msg.role] = msg.selected;
-        this.roleVoted(msg.role);
+        //房主处理投票结果
+        if(this.isOwner){
+          this.voteResult[msg.userID] = msg.selected;
+          this.roleVoted(msg.userID);
+        }
+        //所有玩家显示通知
+        this.$bvToast.toast(this.getUserNameByuserID(msg.userID)+this.$t('vote')+this.$t('success'), {
+          title: this.$t('prompt'),
+          autoHideDelay: 2000,
+        })
       }
       //投票结果
       else if (msg.event == GameEvent.VoteResult){
@@ -552,7 +628,7 @@ export default {
         this.seerForm.options = [];
         this.seerForm.selected = [];
         this.robberForm.options = [];
-        this.robberForm.selected = "";
+        this.robberForm.selected = [];
         this.troubleMakerForm.options = [];
         this.troubleMakerForm.selected = [];
         this.drunkForm.options = [];
@@ -563,29 +639,25 @@ export default {
         this.voteForm.selected = "";
         this.totalRoles = [];
         this.waitRoles = [];
+        this.waitUsers = [];
         this.roleSubmit = {};
         this.voteResult = {};
         this.voteShow = false;
       }
       else if(msg.event == GameEvent.JoinRoomNotify){
-        let roomUserInfo = msg.roomUserInfo;
-        if(roomUserInfo.userID == this.registerRsp.userID) return;
-        this.$bvToast.toast(roomUserInfo.userProfile+this.$t('join_room'), {
-          title: 'matchvs',
-          autoHideDelay: 1000,
-        })
-        this.roomUserInfoList.push(roomUserInfo);
+        this.receiveJoinRoomNotify(msg.roomUserInfo);
+      }
+      else if(msg.event == GameEvent.JoinOverNotify){
+        this.receiveJoinOverNotify(msg.joinOverInfo);
       }
     },
     //角色投票
-    roleVoted(role){
+    roleVoted(userID){
       //等待列表中剔除角色
-      let i = this.waitRoles.findIndex(value => {
-        return value == role;
-      });
-      this.waitRoles.splice(i, 1);
+      let i = this.waitUsers.indexOf(userID);
+      this.waitUsers.splice(i, 1);
       //等待列表为空，进行投票结算，通知投票结果
-      if (this.waitRoles.length == 0 && this.isOwner) {
+      if (this.waitUsers.length == 0 && this.isOwner) {
         this.sendMsg({
           event: GameEvent.VoteResult,
           result: this.voteResult,
@@ -625,6 +697,9 @@ export default {
           } 
           // 强盗
           else if (role == RoleList.Robber) {
+            //不换身份
+            if(this.roleSubmit[role].length == 0) continue;
+            //换身份
             let robberID = this.originRoleUserMap[role].userID;
             this.exchangeRole(this.roleSubmit[role],robberID);
             let msg = {
@@ -636,6 +711,9 @@ export default {
           }
           // 捣蛋鬼
           else if(role == RoleList.TroubleMaker){
+            //不换身份
+            if(this.roleSubmit[role].length == 0) continue;
+            //换身份
             this.exchangeRole(this.roleSubmit[role][0],this.roleSubmit[role][1]);
             let msg = {
               event: GameEvent.RoleResult,
@@ -665,6 +743,9 @@ export default {
           }
           // 女巫
           else if(role == RoleList.Witch){
+            //不换身份
+            if(this.roleSubmit[role].length == 0) continue;
+            //换身份
             let noPlayerIndex = this.isPlayer(this.roleSubmit[role][0]) ? 1 : 0;
             let noPlayerRole = this.getRoleByuserID(this.roleSubmit[role][noPlayerIndex]);
             this.exchangeRole(this.roleSubmit[role][0],this.roleSubmit[role][1]);
@@ -871,11 +952,12 @@ export default {
         });
       }
       this.voteForm.show = true;
-      // 创建等待角色列表
-      this.waitRoles = [];
-      for(let role in this.roleUserMap){
-        if(this.isPlayer(this.roleUserMap[role].userID)) this.waitRoles.push(role);
+      // 创建等待玩家列表
+      this.waitUsers = [];
+      for(let user of this.roomUserInfoList){
+        this.waitUsers.push(user.userID);
       }
+      this.playerPanel.text += "\n开始讨论吧~从玩家列表中第"+1+"位玩家开始，按顺序发言";
     },
     showVoteResult(){
       this.voteShow = true;
@@ -883,6 +965,7 @@ export default {
     onNewGame(){
       this.settingForm.show = true;
       this.sendMsg({event: GameEvent.New});
+      engine.joinOpen("");
     },
     onWolfSubmit(){
       if(!this.wolfFormState) return;
@@ -949,7 +1032,7 @@ export default {
       let msg = {
         event: GameEvent.VoteSubmit,
         selected: this.voteForm.selected,
-        role: this.registerRsp.userID,
+        userID: this.registerRsp.userID,
       };
       this.sendMsg(msg);
       this.voteForm.show = false;
@@ -1010,13 +1093,38 @@ export default {
     updateHandler(){
       engine.leaveRoom("走了");
     },
-    sendJoinRoom(){
+    sendJoinRoomNotify(){
       this.sendMsg({
         event: GameEvent.JoinRoomNotify,
         roomUserInfo: {
           userID: this.registerRsp.userID,
           userProfile: this.playerForm.name,
         }
+      })
+    },
+    receiveJoinRoomNotify(roomUserInfo){
+      if(this.registerRsp.userID == roomUserInfo.userID) return;
+      this.$bvToast.toast(roomUserInfo.userProfile+this.$t('join_room'), {
+        title: 'matchvs',
+        autoHideDelay: 2000,
+      })
+      this.roomUserInfoList.push(roomUserInfo);
+    },
+    sendJoinOverNotify(){
+      this.sendMsg({
+        event: GameEvent.JoinOverNotify,
+        joinOverInfo: {
+          roomID: this.roomInfo.roomID,
+          srcUserID: this.registerRsp.userID,
+          cpProto: "",
+        }
+      })
+    },
+    receiveJoinOverNotify(joinOverInfo){
+      if(this.registerRsp.userID == joinOverInfo.srcUserID) return;
+      this.$bvToast.toast(this.$t('join_over')+joinOverInfo.roomID, {
+        title: 'matchvs',
+        autoHideDelay: 2000,
       })
     }
   }
