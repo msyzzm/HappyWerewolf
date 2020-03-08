@@ -2,7 +2,7 @@
   <b-container>
     <b-card-group columns>
       <transition name="slide-fade">
-        <b-card v-if="playerForm.show">
+        <b-card v-show="playerForm.show">
           <template v-slot:header>
             <h3 class="mb-0">开始游戏</h3>
           </template>
@@ -21,7 +21,7 @@
         </b-card>
       </transition>
       <transition name="slide-fade">
-        <b-card v-if="playerInfo.show">
+        <b-card v-show="playerInfo.show">
           <template v-slot:header>
             <h3 class="mb-0">房间信息</h3>
           </template>
@@ -42,7 +42,7 @@
       </transition>
 
     <transition name="slide-fade">
-      <b-card v-if="settingForm.show">
+      <b-card v-show="settingForm.show">
         <template v-slot:header>
           <h3 class="mb-0">游戏设定</h3>
         </template>
@@ -65,7 +65,7 @@
     </transition>
     
     <transition name="slide-fade">
-      <b-card v-if="playerPanel.show">
+      <b-card v-show="playerPanel.show">
         <template v-slot:header>
           <h3 class="mb-0">本局游戏身份</h3>
           <h4>夜晚行动的角色顺序与此相同</h4>
@@ -87,7 +87,7 @@
 
 
     <transition name="slide-fade">
-      <b-card v-if="playerPanel.show">
+      <b-card v-show="playerPanel.show">
         <template v-slot:header>
           <h3 class="mb-0">操作</h3>
         </template>
@@ -140,7 +140,7 @@
 
 
     <transition name="slide-fade">
-      <b-card v-if="voteForm.show">
+      <b-card v-show="voteForm.show">
         <template v-slot:header>
           <h3 class="mb-0">{{$t('vote')}}</h3>
         </template>
@@ -156,8 +156,8 @@
 
 
     <transition name="slide-fade">
-      <b-card v-if="this.voteShow" no-body>
-        <template v-slot:header v-if="this.voteShow">
+      <b-card v-show="this.voteShow" no-body>
+        <template v-slot:header v-show="this.voteShow">
           <h3 class="mb-0">投票结果</h3>
         </template>
         <b-list-group flush>
@@ -197,7 +197,7 @@
   transition: all 1s ease;
 }
 .slide-fade-leave-active {
-  transition: all 1s cubic-bezier(1.0, 0.5, 0.8, 1.0);
+  transition: all .3s cubic-bezier(1.0, 0.5, 0.8, 1.0);
 }
 .slide-fade-enter, .slide-fade-leave-to
 /* .slide-fade-leave-active for below version 2.1.8 */ {
@@ -433,7 +433,7 @@ export default {
       originRoleUserMap:{},
       roleUserMap: {},
       sentMsg: {},
-      playerRole: "",
+      playerRole: 1,
       playerPanel: {
         show: false,
         text: ""
@@ -642,7 +642,7 @@ export default {
         this.originRoleUserMap = {};
         this.roleUserMap = {};
         this.sentMsg = {};
-        this.playerRole = "";
+        this.playerRole = 1;
         this.playerPanel.show = false;
         this.playerPanel.text = "";
         this.wolfForm.options = [];
@@ -981,9 +981,7 @@ export default {
       for(let user of this.roomUserInfoList){
         this.waitUsers.push(user.userID);
       }
-      this.playerPanel.text += `开始讨论吧~
-      从玩家列表中第1位玩家开始，按顺序发言
-      讨论结束后，在下方投票面板选择玩家并投票`;
+      this.playerPanel.text += "开始讨论吧~\n从玩家列表中第1位玩家开始，按顺序发言\n讨论结束后，在下方投票面板选择玩家并投票";
     },
     showVoteResult(){
       this.voteShow = true;
