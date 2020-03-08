@@ -407,7 +407,7 @@ export default {
       roleList: RoleList,
       playerForm: {
         show: true,
-        name: randomNum(100,999).toString(),
+        name: process.env.NODE_ENV == "production" ? "" : randomNum(100,999).toString(),
         roomOptions: this.$t("rooms"),
         roomSelected: "join",
         roomID: ""
