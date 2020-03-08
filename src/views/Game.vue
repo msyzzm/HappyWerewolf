@@ -1,192 +1,210 @@
 <template>
   <b-container>
     <b-card-group columns>
-    <b-card v-if="playerForm.show">
-      <template v-slot:header>
-        <h3 class="mb-0">开始游戏</h3>
-      </template>
-      <b-form id="player-from" @submit.prevent="onSubmit">
-        <b-form-group id="input-1-group">
-          <b-form-input id="input-1" v-model="playerForm.name" required :placeholder="$t('your_name')"></b-form-input>
-        </b-form-group>
-        <b-form-group id="radio-group-1-group">
-          <b-form-radio-group id="radio-group-1" v-model="playerForm.roomSelected" :options="playerForm.roomOptions" buttons></b-form-radio-group>
-        </b-form-group>
-        <b-form-group id="input-2-group">
-          <b-form-input id="input-2" v-if="playerForm.roomSelected=='join'" v-model="playerForm.roomID" required :placeholder="$t('room_id')"></b-form-input>
-        </b-form-group>
-        <b-button type="submit" variant="primary">{{$t("submit")}}</b-button>
-      </b-form>
-    </b-card>
-    <b-card v-if="playerInfo.show">
-      <template v-slot:header>
-        <h3 class="mb-0">房间信息</h3>
-      </template>
-      <b-card-text>
-        {{$t('your_name')+":"+playerForm.name}}
-        <br>
-        {{$t('room_id')+":"+roomInfo.roomID}}
-      </b-card-text>
-      <b-card-text>
-        <h6>玩家列表</h6>
-        <b-button-group vertical>
-          <b-button v-for="(value,index) in this.roomUserInfoList" :key="index">
-            {{value.userProfile}}
-          </b-button>
-        </b-button-group>
-      </b-card-text>
-    </b-card>
+      <transition name="slide-fade">
+        <b-card v-if="playerForm.show">
+          <template v-slot:header>
+            <h3 class="mb-0">开始游戏</h3>
+          </template>
+          <b-form id="player-from" @submit.prevent="onSubmit">
+            <b-form-group id="input-1-group">
+              <b-form-input id="input-1" v-model="playerForm.name" required :placeholder="$t('your_name')"></b-form-input>
+            </b-form-group>
+            <b-form-group id="radio-group-1-group">
+              <b-form-radio-group id="radio-group-1" v-model="playerForm.roomSelected" :options="playerForm.roomOptions" buttons></b-form-radio-group>
+            </b-form-group>
+            <b-form-group id="input-2-group">
+              <b-form-input id="input-2" v-if="playerForm.roomSelected=='join'" v-model="playerForm.roomID" required :placeholder="$t('room_id')"></b-form-input>
+            </b-form-group>
+            <b-button type="submit" variant="primary">{{$t("submit")}}</b-button>
+          </b-form>
+        </b-card>
+      </transition>
+      <transition name="slide-fade">
+        <b-card v-if="playerInfo.show">
+          <template v-slot:header>
+            <h3 class="mb-0">房间信息</h3>
+          </template>
+          <b-card-text>
+            {{$t('your_name')+":"+playerForm.name}}
+            <br>
+            {{$t('room_id')+":"+roomInfo.roomID}}
+          </b-card-text>
+          <b-card-text>
+            <h6>玩家列表</h6>
+            <b-button-group vertical>
+              <b-button v-for="(value,index) in this.roomUserInfoList" :key="index">
+                {{value.userProfile}}
+              </b-button>
+            </b-button-group>
+          </b-card-text>
+        </b-card>
+      </transition>
 
-    <b-card v-if="settingForm.show">
-      <template v-slot:header>
-        <h3 class="mb-0">游戏设定</h3>
-      </template>
-      <b-form id="setting-from" @submit.prevent="onStartGame">
-        <b-form-group
-          :invalid-feedback="'当前玩家数量为'+this.playerNumber+'，请设置角色数量'+(this.playerNumber+3)"
-          :valid-feedback="'数量正确'"
-          :state="settingFormState">
-          <b-form-checkbox-group
-            v-model="settingForm.roleSelected"
-            :options="settingForm.roleOptions"
-            name="buttons-1"
-            buttons
-            stacked
-          ></b-form-checkbox-group>
-        </b-form-group>
-        <b-button type="submit" variant="primary">{{this.$t("start_game")}}</b-button>
-      </b-form>
-    </b-card>
+    <transition name="slide-fade">
+      <b-card v-if="settingForm.show">
+        <template v-slot:header>
+          <h3 class="mb-0">游戏设定</h3>
+        </template>
+        <b-form id="setting-from" @submit.prevent="onStartGame">
+          <b-form-group
+            :invalid-feedback="'当前玩家数量为'+this.playerNumber+'，请设置角色数量'+(this.playerNumber+3)"
+            :valid-feedback="'数量正确'"
+            :state="settingFormState">
+            <b-form-checkbox-group
+              v-model="settingForm.roleSelected"
+              :options="settingForm.roleOptions"
+              name="buttons-1"
+              buttons
+              stacked
+            ></b-form-checkbox-group>
+          </b-form-group>
+          <b-button type="submit" variant="primary">{{this.$t("start_game")}}</b-button>
+        </b-form>
+      </b-card>
+    </transition>
+    
+    <transition name="slide-fade">
+      <b-card v-if="playerPanel.show">
+        <template v-slot:header>
+          <h3 class="mb-0">本局游戏身份</h3>
+          <h4>夜晚行动的角色顺序与此相同</h4>
+        </template>
+        
+        <b-card-text>
+          <b-button-group vertical>
+            <b-button v-for="(value,index) in this.roleUserMap" :key="index" v-b-tooltip.hover :title="$t('role_des.'+roleList.property[index].name)">
+              {{$t('role.'+roleList.property[index].name)}}
+            </b-button>
+          </b-button-group>
+        </b-card-text>
+        <b-card-text>
+          {{$t("your_role")}}<strong>{{$t('role.'+roleList.property[playerRole].name)}}</strong>
+        </b-card-text>
+        <b-card-text>{{$t('role_des.'+roleList.property[playerRole].name)}}</b-card-text>
+      </b-card>
+    </transition>
 
-    <b-card v-if="playerPanel.show">
-      <template v-slot:header>
-        <h3 class="mb-0">本局游戏身份</h3>
-      </template>
-      
-      <b-button-group vertical>
-        <b-button v-for="(value,index) in this.roleUserMap" :key="index" v-b-tooltip.hover :title="$t('role_des.'+roleList.property[index].name)">
-          {{$t('role.'+roleList.property[index].name)}}
-        </b-button>
-      </b-button-group>
-      <div id="player-panel" class="p-1">
-        <p>
-          {{$t("your_role")}}
-          <strong>{{$t('role.'+roleList.property[playerRole].name)}}</strong>
-        </p>
-        <p>{{$t('role_des.'+roleList.property[playerRole].name)}}</p>
-      </div>
-    </b-card>
 
-    <b-card v-if="playerPanel.show">
-      <template v-slot:header>
-        <h3 class="mb-0">操作</h3>
-      </template>
-      <p style="white-space: pre;">{{playerPanel.text}}</p>
-      <b-form id="wolf-form" @submit.prevent="onWolfSubmit" v-show="wolfForm.show">
-        <b-form-group :invalid-feedback="$t('invalid')"
-          :state="wolfFormState">
-          <b-form-radio-group v-model="wolfForm.selected" :options="wolfForm.options" buttons stacked></b-form-radio-group>
-        </b-form-group>
-        <b-button type="submit" variant="primary">{{$t("submit")}}</b-button>
-      </b-form>
-      <b-form id="seer-form" @submit.prevent="onSeerSubmit" v-show="seerForm.show">
-        <b-form-group :invalid-feedback="$t('invalid')"
-          :state="seerFormState">
-          <b-form-checkbox-group v-model="seerForm.selected" :options="seerForm.options" buttons stacked></b-form-checkbox-group>
-        </b-form-group>
-        <b-button type="submit" variant="primary">{{$t("submit")}}</b-button>
-      </b-form>
-      <b-form id="robber-form" @submit.prevent="onRobberSubmit" v-show="robberForm.show">
-        <b-form-group :invalid-feedback="$t('invalid')"
-          :state="robberFormState">
-          <b-form-checkbox-group v-model="robberForm.selected" :options="robberForm.options" buttons stacked></b-form-checkbox-group>
-        </b-form-group>
-        <b-button type="submit" variant="primary">{{$t("submit")}}</b-button>
-      </b-form>
-      <b-form id="trouble-maker-form" @submit.prevent="onTroubleMakerSubmit" v-show="troubleMakerForm.show">
-        <b-form-group :invalid-feedback="$t('invalid')"
-          :state="troubleMakerFormState">
-          <b-form-checkbox-group v-model="troubleMakerForm.selected" :options="troubleMakerForm.options" buttons stacked></b-form-checkbox-group>
-        </b-form-group>
-        <b-button type="submit" variant="primary">{{$t("submit")}}</b-button>
-      </b-form>
-      <b-form id="drunk-form" @submit.prevent="onDrunkSubmit" v-show="drunkForm.show">
-        <b-form-group :invalid-feedback="$t('invalid')"
-          :state="drunkFormState">
-          <b-form-radio-group v-model="drunkForm.selected" :options="drunkForm.options" buttons stacked></b-form-radio-group>
-        </b-form-group>
-        <b-button type="submit" variant="primary">{{$t("submit")}}</b-button>
-      </b-form>
-      <b-form id="witch-form" @submit.prevent="onWitchSubmit" v-show="witchForm.show">
-        <b-form-group :invalid-feedback="$t('invalid')"
-          :state="witchFormState">
-          <b-form-checkbox-group v-model="witchForm.selected" :options="witchForm.options" buttons stacked></b-form-checkbox-group>
-        </b-form-group>
-        <b-button type="submit" variant="primary">{{$t("submit")}}</b-button>
-      </b-form>
+    <transition name="slide-fade">
+      <b-card v-if="playerPanel.show">
+        <template v-slot:header>
+          <h3 class="mb-0">操作</h3>
+        </template>
+        <b-card-text style="white-space: pre;">{{playerPanel.text}}</b-card-text>
+        
+        <b-form id="wolf-form" @submit.prevent="onWolfSubmit" v-show="wolfForm.show">
+          <b-form-group :invalid-feedback="$t('invalid')"
+            :state="wolfFormState">
+            <b-form-radio-group v-model="wolfForm.selected" :options="wolfForm.options" buttons stacked></b-form-radio-group>
+          </b-form-group>
+          <b-button type="submit" variant="primary">{{$t("submit")}}</b-button>
+        </b-form>
+        <b-form id="seer-form" @submit.prevent="onSeerSubmit" v-show="seerForm.show">
+          <b-form-group :invalid-feedback="$t('invalid')"
+            :state="seerFormState">
+            <b-form-checkbox-group v-model="seerForm.selected" :options="seerForm.options" buttons stacked></b-form-checkbox-group>
+          </b-form-group>
+          <b-button type="submit" variant="primary">{{$t("submit")}}</b-button>
+        </b-form>
+        <b-form id="robber-form" @submit.prevent="onRobberSubmit" v-show="robberForm.show">
+          <b-form-group :invalid-feedback="$t('invalid')"
+            :state="robberFormState">
+            <b-form-checkbox-group v-model="robberForm.selected" :options="robberForm.options" buttons stacked></b-form-checkbox-group>
+          </b-form-group>
+          <b-button type="submit" variant="primary">{{$t("submit")}}</b-button>
+        </b-form>
+        <b-form id="trouble-maker-form" @submit.prevent="onTroubleMakerSubmit" v-show="troubleMakerForm.show">
+          <b-form-group :invalid-feedback="$t('invalid')"
+            :state="troubleMakerFormState">
+            <b-form-checkbox-group v-model="troubleMakerForm.selected" :options="troubleMakerForm.options" buttons stacked></b-form-checkbox-group>
+          </b-form-group>
+          <b-button type="submit" variant="primary">{{$t("submit")}}</b-button>
+        </b-form>
+        <b-form id="drunk-form" @submit.prevent="onDrunkSubmit" v-show="drunkForm.show">
+          <b-form-group :invalid-feedback="$t('invalid')"
+            :state="drunkFormState">
+            <b-form-radio-group v-model="drunkForm.selected" :options="drunkForm.options" buttons stacked></b-form-radio-group>
+          </b-form-group>
+          <b-button type="submit" variant="primary">{{$t("submit")}}</b-button>
+        </b-form>
+        <b-form id="witch-form" @submit.prevent="onWitchSubmit" v-show="witchForm.show">
+          <b-form-group :invalid-feedback="$t('invalid')"
+            :state="witchFormState">
+            <b-form-checkbox-group v-model="witchForm.selected" :options="witchForm.options" buttons stacked></b-form-checkbox-group>
+          </b-form-group>
+          <b-button type="submit" variant="primary">{{$t("submit")}}</b-button>
+        </b-form>
+      </b-card>
+    </transition>
 
-      <!-- <b-form id="vote-form" @submit.prevent="onVoteSubmit" v-show="voteForm.show">
-        <b-form-group :invalid-feedback="$t('vote_invalid')" :label="$t('vote')"
-          :state="voteFormState">
-          <b-form-radio-group v-model="voteForm.selected" :options="voteForm.options" buttons stacked></b-form-radio-group>
-        </b-form-group>
-        <b-button type="submit" variant="primary">{{$t("submit")}}</b-button>
-      </b-form>
-      <b-list-group title="投票结果" v-if="this.voteShow">
-        <b-list-group-item v-for="(value,index) in this.voteResult" :key="index">
-          {{getUserNameByuserID(index)+" "+ $t('role.'+roleList.property[getRoleByuserID(index)].name) +" 投票给 " + getUserNameByuserID(value)}}
-        </b-list-group-item>
-        <b-list-group-item v-show="this.isOwner" button variant="primary" @click="onNewGame">
-          {{$t("next_game")}}
-        </b-list-group-item>
-      </b-list-group> -->
-    </b-card>
 
-    <b-card v-if="voteForm.show">
-      <template v-slot:header>
-        <h3 class="mb-0">{{$t('vote')}}</h3>
-      </template>
-      <b-form id="vote-form" @submit.prevent="onVoteSubmit" v-show="voteForm.show">
-        <b-form-group :invalid-feedback="$t('vote_invalid')"
-          :state="voteFormState">
-          <b-form-radio-group v-model="voteForm.selected" :options="voteForm.options" buttons stacked></b-form-radio-group>
-        </b-form-group>
-        <b-button type="submit" variant="primary">{{$t("submit")}}</b-button>
-      </b-form>
-    </b-card>
+    <transition name="slide-fade">
+      <b-card v-if="voteForm.show">
+        <template v-slot:header>
+          <h3 class="mb-0">{{$t('vote')}}</h3>
+        </template>
+        <b-form id="vote-form" @submit.prevent="onVoteSubmit" v-show="voteForm.show">
+          <b-form-group :invalid-feedback="$t('vote_invalid')"
+            :state="voteFormState">
+            <b-form-radio-group v-model="voteForm.selected" :options="voteForm.options" buttons stacked></b-form-radio-group>
+          </b-form-group>
+          <b-button type="submit" variant="primary">{{$t("submit")}}</b-button>
+        </b-form>
+      </b-card>
+    </transition>
 
-    <b-card v-if="this.voteShow" no-body>
-      <template v-slot:header v-if="this.voteShow">
-        <h3 class="mb-0">投票结果</h3>
-      </template>
-      <b-list-group flush>
-        <b-list-group-item v-for="(value,index) in this.voteResult" :key="index">
-          {{getUserNameByuserID(index)+" "+ $t('role.'+roleList.property[getRoleByuserID(index)].name) +" 投票给 " + getUserNameByuserID(value)}}
-        </b-list-group-item>
-        <b-list-group-item v-show="this.isOwner" button variant="primary" @click="onNewGame">
-          {{$t("next_game")}}
-        </b-list-group-item>
-      </b-list-group>
-    </b-card>
 
-    <b-card header="Debug" style="">
-      <b-button v-b-toggle.collapse-debug>Debug</b-button>
-      <b-collapse id="collapse-debug" class="mt-2">
-        <b-card title="totalRoles">{{totalRoles}}</b-card>
-        <b-card title="waitRoles">{{waitRoles}}</b-card>
-        <b-card title="waitUsers">{{waitUsers}}</b-card>
-        <b-card title="voteResult">{{voteResult}}</b-card>
-        <b-card title="roomUserInfoList">{{roomUserInfoList}}</b-card>
-        <b-card title="roomInfo">{{roomInfo}}</b-card>
-        <b-card title="originRoleUserMap">{{originRoleUserMap}}</b-card>
-        <b-card title="roleUserMap">{{roleUserMap}}</b-card>
-        <b-card title="roleSubmit">{{roleSubmit}}</b-card>
-      </b-collapse>
-    </b-card>
+    <transition name="slide-fade">
+      <b-card v-if="this.voteShow" no-body>
+        <template v-slot:header v-if="this.voteShow">
+          <h3 class="mb-0">投票结果</h3>
+        </template>
+        <b-list-group flush>
+          <b-list-group-item v-for="(value,index) in this.voteResult" :key="index">
+            {{getUserNameByuserID(index)+" "+ $t('role.'+roleList.property[getRoleByuserID(index)].name) +" 投票给 " + getUserNameByuserID(value)}}
+          </b-list-group-item>
+          <b-list-group-item v-show="this.isOwner" button variant="primary" @click="onNewGame">
+            {{$t("next_game")}}
+          </b-list-group-item>
+        </b-list-group>
+      </b-card>
+    </transition>
+
+    <transition name="slide-fade">
+      <b-card header="Debug" :style="debugStyle">
+        <b-button v-b-toggle.collapse-debug>Debug</b-button>
+        <b-collapse id="collapse-debug" class="mt-2">
+          <b-card title="totalRoles">{{totalRoles}}</b-card>
+          <b-card title="waitRoles">{{waitRoles}}</b-card>
+          <b-card title="waitUsers">{{waitUsers}}</b-card>
+          <b-card title="voteResult">{{voteResult}}</b-card>
+          <b-card title="roomUserInfoList">{{roomUserInfoList}}</b-card>
+          <b-card title="roomInfo">{{roomInfo}}</b-card>
+          <b-card title="originRoleUserMap">{{originRoleUserMap}}</b-card>
+          <b-card title="roleUserMap">{{roleUserMap}}</b-card>
+          <b-card title="roleSubmit">{{roleSubmit}}</b-card>
+        </b-collapse>
+      </b-card>
+    </transition>
     </b-card-group>
   </b-container>
 </template>
-
+<style lang="scss" scoped>
+/* 可以设置不同的进入和离开动画 */
+/* 设置持续时间和动画函数 */
+.slide-fade-enter-active {
+  transition: all 1s ease;
+}
+.slide-fade-leave-active {
+  transition: all 1s cubic-bezier(1.0, 0.5, 0.8, 1.0);
+}
+.slide-fade-enter, .slide-fade-leave-to
+/* .slide-fade-leave-active for below version 2.1.8 */ {
+  transform: translateX(100vw);
+  opacity: 0;
+}
+</style>
 <script>
 import { RoleList, randomNum } from "../plugins/var";
 import {
@@ -464,6 +482,10 @@ export default {
     };
   },
   computed: {
+    debugStyle(){
+      let display = process.env.NODE_ENV == 'production' ? 'none' : 'block';
+      return {display : display};
+    },
     playerNumber() {
       return this.roomUserInfoList.length;
     },
@@ -678,7 +700,7 @@ export default {
             let msg = {
               event: GameEvent.RoleResult,
               roles: [RoleList.WereWolf,RoleList.WereWolf2],
-              result: "这张牌是："+this.$t("role."+RoleList.property[this.getRoleByuserID(selected)].name)
+              result: "这张牌是："+this.$t("role."+RoleList.property[this.getRoleByuserID(selected)].name)+"\n"
             }
             this.sendMsg(msg);
           }
@@ -705,7 +727,7 @@ export default {
             let msg = {
               event: GameEvent.RoleResult,
               roles: [RoleList.Robber],
-              result: "你与 "+this.getUserNameByuserID(this.roleSubmit[role]) +" "+ this.$t('role.'+RoleList.property[this.getRoleByuserID(robberID)].name) +" 交换了身份"
+              result: "你与 "+this.getUserNameByuserID(this.roleSubmit[role]) +" "+ this.$t('role.'+RoleList.property[this.getRoleByuserID(robberID)].name) +" 交换了身份\n"
             };
             this.sendMsg(msg);
           }
@@ -718,7 +740,7 @@ export default {
             let msg = {
               event: GameEvent.RoleResult,
               roles: [RoleList.TroubleMaker],
-              result: "你交换了 "+this.getUserNameByuserID(this.roleSubmit[role][0])+" 和 "+this.getUserNameByuserID(this.roleSubmit[role][1])+" 的身份",
+              result: "你交换了 "+this.getUserNameByuserID(this.roleSubmit[role][0])+" 和 "+this.getUserNameByuserID(this.roleSubmit[role][1])+" 的身份\n",
             }
             this.sendMsg(msg);
           }
@@ -728,7 +750,7 @@ export default {
             let msg = {
               event: GameEvent.RoleResult,
               roles: [RoleList.Drunk],
-              result:"你与 "+this.getUserNameByuserID(this.roleSubmit[role])+" 交换了身份"
+              result:"你与 "+this.getUserNameByuserID(this.roleSubmit[role])+" 交换了身份\n"
             };
             this.sendMsg(msg);
           }
@@ -737,7 +759,7 @@ export default {
             let msg = {
               event: GameEvent.RoleResult,
               roles: [RoleList.Insomanic],
-              result: "你现在的身份是："+ this.$t("role."+RoleList.property[this.getRoleByuserID(this.originRoleUserMap[role].userID)].name)
+              result: "你现在的身份是："+ this.$t("role."+RoleList.property[this.getRoleByuserID(this.originRoleUserMap[role].userID)].name)+"\n"
             }
             this.sendMsg(msg);
           }
@@ -752,7 +774,7 @@ export default {
             let msg = {
               event: GameEvent.RoleResult,
               roles: [RoleList.Witch],
-              result: "你将非玩家身份 "+ this.$t('role.'+RoleList.property[noPlayerRole].name) +" 给了 "+this.getUserNameByuserID(this.roleSubmit[role][noPlayerIndex==0?1:0]),
+              result: "你将非玩家身份 "+ this.$t('role.'+RoleList.property[noPlayerRole].name) +" 给了 "+this.getUserNameByuserID(this.roleSubmit[role][noPlayerIndex==0?1:0])+"\n",
             }
             this.sendMsg(msg);
           }
@@ -840,7 +862,7 @@ export default {
         let wolfRoles = this.getWolfRoles();
         // 场上只有一狼
         if (wolfRoles.length == 1) {
-          this.playerPanel.text = "你没有队友，查看一张非玩家牌";
+          this.playerPanel.text = "你没有队友，查看一张非玩家牌\n";
           for (let roleUser in roleUserMap) {
             if (this.isPlayer(roleUserMap[roleUser].userID)) continue;
             this.wolfForm.options.push({
@@ -852,29 +874,31 @@ export default {
         }
         // 多狼
         else {
-          this.playerPanel.text = "狼玩家：";
+          this.playerPanel.text = "场上的狼玩家是：";
           for (let role of wolfRoles) {
             this.playerPanel.text += this.roleUserMap[role].userProfile + " ";
           }
           this.playerPanel.text.trimRight();
+          this.playerPanel.text+="\n";
         }
       // 爪牙
       } else if (this.playerRole == RoleList.Minion) {
         let wolfRoles = this.getWolfRoles();
         if(wolfRoles.length == 0){
-          this.playerPanel.text = "场上没有狼人";
+          this.playerPanel.text = "场上没有狼人\n";
         }
         else{
-          this.playerPanel.text = "狼队：";
+          this.playerPanel.text = "场上的狼玩家是：";
           for (let role of wolfRoles) {
             this.playerPanel.text += this.roleUserMap[role].userProfile + " ";
           }
           this.playerPanel.text.trimRight();
+          this.playerPanel.text+="\n";
         }
       }
       // 玩家是预言家
       else if (this.playerRole == RoleList.Seer) {
-        this.playerPanel.text = "夜晚行动";
+        this.playerPanel.text = "夜晚行动\n";
         for (let roleUser in roleUserMap) {
           this.seerForm.options.push({
             text: roleUserMap[roleUser].userProfile,
@@ -885,7 +909,7 @@ export default {
       }
       // 玩家是强盗
       else if (this.playerRole == RoleList.Robber) {
-        this.playerPanel.text = "夜晚行动";
+        this.playerPanel.text = "夜晚行动\n";
         for (let roleUser in roleUserMap) {
           if (
             roleUserMap[roleUser].userID == this.registerRsp.userID ||
@@ -901,7 +925,7 @@ export default {
       }
       // 玩家是捣蛋鬼
       else if(this.playerRole == RoleList.TroubleMaker){
-        this.playerPanel.text = "夜晚行动";
+        this.playerPanel.text = "夜晚行动\n";
         for (let roleUser in roleUserMap) {
           if (
             roleUserMap[roleUser].userID == this.registerRsp.userID ||
@@ -917,7 +941,7 @@ export default {
       }
       // 酒鬼
       else if(this.playerRole == RoleList.Drunk){
-        this.playerPanel.text = "夜晚行动";
+        this.playerPanel.text = "夜晚行动\n";
         for (let roleUser in roleUserMap) {
           if (
             roleUserMap[roleUser].userID == this.registerRsp.userID ||
@@ -933,7 +957,7 @@ export default {
       }
       // 女巫
       else if(this.playerRole == RoleList.Witch){
-        this.playerPanel.text = "夜晚行动";
+        this.playerPanel.text = "夜晚行动\n";
         for (let roleUser in roleUserMap) {
           if (roleUserMap[roleUser].userID == this.registerRsp.userID) continue;
           this.witchForm.options.push({
@@ -957,7 +981,9 @@ export default {
       for(let user of this.roomUserInfoList){
         this.waitUsers.push(user.userID);
       }
-      this.playerPanel.text += "\n开始讨论吧~从玩家列表中第"+1+"位玩家开始，按顺序发言";
+      this.playerPanel.text += `开始讨论吧~
+      从玩家列表中第1位玩家开始，按顺序发言
+      讨论结束后，在下方投票面板选择玩家并投票`;
     },
     showVoteResult(){
       this.voteShow = true;
@@ -1091,6 +1117,7 @@ export default {
     },
     // 刷新或关闭页面时
     updateHandler(){
+      console.log("beforeunload");
       engine.leaveRoom("走了");
     },
     sendJoinRoomNotify(){
