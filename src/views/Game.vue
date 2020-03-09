@@ -363,6 +363,7 @@ export default {
         autoHideDelay: 2000,
       })
     }.bind(this);
+
     response.leaveRoomResponse = function(leaveRoomRsp){
       if(leaveRoomRsp.status == 200){
         this.$bvToast.toast(this.$t('leave_room')+this.$t('success'), {
@@ -370,7 +371,7 @@ export default {
           autoHideDelay: 2000,
         })
       }
-    };
+    }.bind(this);
     response.leaveRoomNotify = function(leaveRoomInfo) {
       let index = this.roomUserInfoList.findIndex(value => {
         return value.userID == leaveRoomInfo.userID;
@@ -399,7 +400,7 @@ export default {
       if(errCode == 1001){
         this.reconnectShow = true;
       }
-    }
+    }.bind(this);
 
     response.reconnectResponse = function(status,roomUserInfoList,roomInfo){
       let text;
@@ -419,7 +420,7 @@ export default {
         title: 'matchvs',
         autoHideDelay: 5000,
       });
-    },
+    }.bind(this);
 
     response.networkStateNotify = function(networkStateInfo){
       /**
@@ -447,7 +448,7 @@ export default {
         title: 'matchvs',
         autoHideDelay: 5000,
       });
-    }
+    }.bind(this);
 
     //发送消息Response
     response.sendEventResponse = function(sendEventResponse) {
