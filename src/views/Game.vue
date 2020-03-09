@@ -973,7 +973,7 @@ export default {
         this.playerRole == RoleList.Villager2 ||
         this.playerRole == RoleList.Villager3
       ) {
-        this.playerPanel.text = "等待黎明到来";
+        this.playerPanel.text = "等待黎明到来\n";
       } 
       // 玩家是狼
       else if (
