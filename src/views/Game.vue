@@ -164,12 +164,16 @@
           <b-list-group-item v-for="(value,index) in this.voteResult" :key="index">
             {{getUserNameByuserID(index)+" "+ $t('role.'+roleList.property[getRoleByuserID(index)].name) +" 投票给 " + getUserNameByuserID(value)}}
           </b-list-group-item>
+          <b-list-group-item>
+            {{"获得胜利的是：" + getWinner()}}
+          </b-list-group-item>
           <b-list-group-item v-show="this.isOwner" button variant="primary" @click="onNewGame">
             {{$t("next_game")}}
           </b-list-group-item>
         </b-list-group>
       </b-card>
     </transition>
+
     <transition name="slide-fade">
       <b-card v-show="this.reconnectShow">
         <template v-slot:header v-show="this.voteShow">
@@ -255,15 +259,24 @@ export default {
     response.loginResponse = function(loginRsp) {
       this.loginRsp = loginRsp;
       if(loginRsp.status == 200){
-        engine.setReconnectTimeout(600) //房间重连超时
-        engine.setTeamReconnectTimeout(600) //组队重连超时
+        engine.setReconnectTimeout(-1) //房间重连超时
+        engine.setTeamReconnectTimeout(-1) //组队重连超时
         this.$bvToast.toast(this.$t('login')+this.$t('success'), {
           title: 'matchvs',
           autoHideDelay: 2000,
         });
-        if (this.playerForm.roomSelected == "join") {
+        //如果有房间ID则重新连接
+        if(loginRsp.roomID != 0){
+          engine.reconnect();
+          this.$bvToast.toast("重新连接房间", {
+            title: 'matchvs',
+            autoHideDelay: 2000,
+          });
+        }
+        else if (this.playerForm.roomSelected == "join") {
           engine.joinRoom(this.playerForm.roomID, this.playerForm.name);
-        } else {
+        } 
+        else {
           let createRoomInfo = {
             roomName: "Let's go!",
             maxPlayer: 20,
@@ -322,8 +335,8 @@ export default {
           userID: this.registerRsp.userID,
           userProfile: this.playerForm.name
         });
-        let temp = this.roomUserInfoList[0];
-        this.roomUserInfoList.splice(0,1,temp);
+        // let temp = this.roomUserInfoList[0];
+        // this.roomUserInfoList.splice(0,1,temp);
         this.roomInfo = roomInfo;
         this.playerInfo.show = true;
         this.playerForm.show = false;
@@ -341,6 +354,7 @@ export default {
           title: 'matchvs',
           autoHideDelay: 2000,
         })
+        this.joinOver = true;
       }
       
       //结束加入房间通知（SDK有问题，不发通知）
@@ -373,23 +387,8 @@ export default {
       }
     }.bind(this);
     response.leaveRoomNotify = function(leaveRoomInfo) {
-      let index = this.roomUserInfoList.findIndex(value => {
-        return value.userID == leaveRoomInfo.userID;
-      });
-      if(index == -1) return;
-      this.$bvToast.toast(this.roomUserInfoList[index].userProfile+this.$t('leave_room'), {
-        title: 'matchvs',
-        autoHideDelay: 2000,
-      });
-      this.roomUserInfoList.splice(index, 1);
-      this.roomInfo.owner = leaveRoomInfo.owner;
-      //如果变成了房主
-      if(leaveRoomInfo.owner == this.registerRsp.userID && this.joinOver == false){
-        this.settingForm.show = true;
-      }
-
+      this.onPlayerLeaveRoom(leaveRoomInfo.userID, leaveRoomInfo.owner);
     }.bind(this);
-
 
     response.errorResponse = function(errCode,errMsg){
       this.$bvToast.toast(errCode+" "+errMsg, {
@@ -400,6 +399,7 @@ export default {
       if(errCode == 1001){
         this.reconnectShow = true;
       }
+      //其他错误码无法处理
     }.bind(this);
 
     response.reconnectResponse = function(status,roomUserInfoList,roomInfo){
@@ -409,9 +409,11 @@ export default {
           text = "重连成功"
           this.roomUserInfoList = roomUserInfoList;
           this.roomInfo = roomInfo;
+          // TODO 进入游戏中
           break;
         case 201:
           text = "重连房间失败，但已登录";
+          
           break;
         default:
           text = "未知";
@@ -424,30 +426,30 @@ export default {
 
     response.networkStateNotify = function(networkStateInfo){
       /**
-       * @param {number} state 1-网络异常，正在重连  2-重连成功 3-重连失败，退出房间
        * @param {string} roomID 房间号
        * @param {number} userID 用户ID
-       * @param {number} state  用户状态 1-用户掉线  2-用户已经登录游戏，待定重连 3-用户离开房间了
+       * @param {number} state  1-网络异常，正在重连  2-重连成功 3-重连失败，退出房间
        * @param {number} owner  当前房间房主ID
        */
       let text;
       switch(networkStateInfo.state){
         case 1:
-          text = "用户掉线";
+          text = "网络异常，正在重连";
           break;
         case 2:
-          text = "用户已经登录游戏，待定重连";
+          text = "重连成功";
           break;
         case 3:
-          text = "用户离开房间了";
+          text = "重连失败，退出房间";
           break;
         default:
           text = "未知";
       }
-      this.$bvToast.toast(this.getUserNameByuserID(networkStateInfo.userID)+" 状态："+networkStateInfo.state+text, {
+      this.$bvToast.toast(this.getUserNameByuserID(networkStateInfo.userID)+" 状态："+networkStateInfo.state+" 内容："+text, {
         title: 'matchvs',
         autoHideDelay: 5000,
       });
+      if(networkStateInfo.state > 2) this.onPlayerLeaveRoom(networkStateInfo.userID,networkStateInfo.owner);
     }.bind(this);
 
     //发送消息Response
@@ -630,7 +632,8 @@ export default {
   },
   methods: {
     onReconnect(){
-      //
+      //进行重连
+      engine.reconnect();
     },
     onSubmit() {
       //如果已经登录
@@ -733,7 +736,7 @@ export default {
       }
       //开始讨论
       else if (msg.event == GameEvent.DiscussStart){
-        this.startDiscuss();
+        this.startDiscuss(msg);
         this.$bvToast.toast(this.$t('start_discuss'), {
           title: this.$t('prompt'),
           autoHideDelay: 2000,
@@ -742,7 +745,7 @@ export default {
       //投票提交
       else if (msg.event == GameEvent.VoteSubmit) {
         //房主处理投票结果
-        if(this.isOwner){
+        if(this.isOwner && msg.selected){
           this.voteResult[msg.userID] = msg.selected;
           this.roleVoted(msg.userID);
         }
@@ -827,6 +830,7 @@ export default {
           }
           // 预言家
           else if (role == RoleList.Seer) {
+            if(this.roleSubmit[role].length == 0) continue;
             let msg = {
               event: GameEvent.RoleResult,
               roles: [RoleList.Seer],
@@ -867,6 +871,7 @@ export default {
           }
           // 酒鬼
           else if(role == RoleList.Drunk){
+            if(this.roleSubmit[role] == undefined) continue;
             this.exchangeRole(this.roleSubmit[role],this.originRoleUserMap[role].userID);
             let msg = {
               event: GameEvent.RoleResult,
@@ -900,7 +905,7 @@ export default {
             this.sendMsg(msg);
           }
         }
-        let msg = { event: GameEvent.DiscussStart };
+        let msg = { event: GameEvent.DiscussStart, num: randomNum(1, this.roomUserInfoList.length+1) };
         this.sendMsg(msg);
       }
     },
@@ -1089,7 +1094,7 @@ export default {
         this.witchForm.show = true;
       }
     },
-    startDiscuss() {
+    startDiscuss(msg) {
       for (let userInfo of this.roomUserInfoList) {
         this.voteForm.options.push({
           text: userInfo.userProfile,
@@ -1102,7 +1107,7 @@ export default {
       for(let user of this.roomUserInfoList){
         this.waitUsers.push(user.userID);
       }
-      this.playerPanel.text += "开始讨论吧~\n从玩家列表中第"+ randomNum(1,this.roomUserInfoList.length+1)+"位玩家开始，按顺序发言\n讨论结束后，在下方选择玩家并投票";
+      this.playerPanel.text += "开始讨论吧~\n从玩家列表中第"+ msg.num+"位玩家开始，按顺序发言\n讨论结束后，在下方选择玩家并投票";
     },
     showVoteResult(){
       this.voteShow = true;
@@ -1234,9 +1239,37 @@ export default {
     isPlayer(userID){
       if(userID) return userID.toString().indexOf("no-player") < 0;
     },
+    getWinner(){
+      let userVoted={};
+      for(let userID in this.voteResult){
+        if(userVoted[userID] == undefined) userVoted[userID] = 1;
+        else userVoted[userID]++;
+      }
+      let maxVotedNum = 0;
+      let outUserIDs = [];
+      for(let userID in userVoted){
+        if(userVoted[userID]>maxVotedNum) {
+          maxVotedNum = userVoted.userID;
+          outUserIDs = [userID];
+        }
+        else if(userVoted == maxVotedNum) {
+          outUserIDs.push(userID);
+        }
+      }
+      for(let userID in outUserIDs){
+        let role = this.getRoleByuserID(userID);
+        if(role == RoleList.WereWolf || role == RoleList.WereWolf2) return "村民阵营";
+      }
+      return "狼人阵营";
+    },
     // 刷新或关闭页面时
     updateHandler(){
-      engine.leaveRoom("走了");
+      //游戏已经开始
+      if(this.joinOver){
+        this.sentMsg({event: GameEvent.LeaveRoomInGame, userID: this.registerRsp.userID})
+      }else{
+        engine.leaveRoom("走了");
+      }
     },
     sendJoinRoomNotify(){
       this.sendMsg({
@@ -1276,6 +1309,35 @@ export default {
         title: 'matchvs',
         autoHideDelay: 2000,
       })
+    },
+    onPlayerLeaveRoom(userID,owner){
+      let index = this.roomUserInfoList.findIndex(value => {
+        return value.userID == userID;
+      });
+      if(index == -1) return;
+      this.$bvToast.toast(this.roomUserInfoList[index].userProfile+this.$t('leave_room'), {
+        title: 'matchvs',
+        autoHideDelay: 2000,
+      });
+      this.roomUserInfoList.splice(index, 1);
+      this.roomInfo.owner = owner;
+
+      //已经开始游戏
+      if(this.joinOver){
+        //TODO 处理房主转移情况
+        if(this.isOwner){
+          let role = this.getRoleByuserID(userID);
+          if(this.waitRoles.indexOf(role)>-1) this.sendMsg({event: GameEvent.RoleSubmit, role: role});
+          if(this.waitUsers.indexOf(userID)>-1) this.sendMsg({event: GameEvent.VoteSubmit, userID: userID});
+        }
+      }
+      //还在准备阶段
+      else{
+        //如果变成了房主
+        if(this.isOwner){
+          this.settingForm.show = true;
+        }
+      }
     }
   }
 };

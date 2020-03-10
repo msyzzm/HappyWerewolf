@@ -54,6 +54,7 @@ const GameData = {
 const GameEvent = {
   JoinRoomNotify: 1,
   JoinOverNotify: 2,
+  LeaveRoomInGame: 5,
   New: 9,
   GameStart: 10,
   DiscussStart: 11,
