@@ -744,8 +744,8 @@ export default {
       }
       //投票提交
       else if (msg.event == GameEvent.VoteSubmit) {
-        //房主处理投票结果
-        if(this.isOwner && msg.selected){
+        //处理投票结果
+        if(msg.selected){
           this.voteResult[msg.userID] = msg.selected;
           this.roleVoted(msg.userID);
         }
