@@ -34,7 +34,7 @@
             <h6>玩家列表</h6>
             <b-button-group vertical>
               <b-button v-for="(value,index) in this.orderRoomUserInfoList" :key="index">
-                {{(index+1) +"号玩家 " + value.userProfile}}
+                {{(index+1) +"号玩家 " + value.userProfile + (value.offline ? "已离开" : "")}}
               </b-button>
             </b-button-group>
           </b-card-text>
@@ -335,10 +335,8 @@ export default {
         this.roomUserInfoList = Array.from(roomUserInfoList);
         this.roomUserInfoList.push({
           userID: this.registerRsp.userID,
-          userProfile: this.playerForm.name
+          userProfile: this.playerForm.name,
         });
-        // let temp = this.roomUserInfoList[0];
-        // this.roomUserInfoList.splice(0,1,temp);
         this.roomInfo = roomInfo;
         this.playerInfo.show = true;
         this.playerForm.show = false;
@@ -1106,7 +1104,7 @@ export default {
       // 创建等待玩家列表
       this.waitUsers = [];
       for(let user of this.roomUserInfoList){
-        this.waitUsers.push(user.userID);
+        if(!user.offline) this.waitUsers.push(user.userID);
       }
       this.playerPanel.text += "开始讨论吧~\n从玩家列表中第"+ msg.num+"位玩家开始，按顺序发言\n讨论结束后，在下方选择玩家并投票";
     },
@@ -1320,12 +1318,11 @@ export default {
         title: 'matchvs',
         autoHideDelay: 2000,
       });
-      this.roomUserInfoList.splice(index, 1);
       this.roomInfo.owner = owner;
 
       //已经开始游戏
       if(this.joinOver){
-        //TODO 处理房主转移情况
+        this.roomUserInfoList[index].offline = true;
         if(this.isOwner){
           let role = this.getRoleByuserID(userID);
           if(this.waitRoles.indexOf(role)>-1) this.sendMsg({event: GameEvent.RoleSubmit, role: role});
@@ -1334,7 +1331,7 @@ export default {
       }
       //还在准备阶段
       else{
-        //如果变成了房主
+        this.roomUserInfoList.splice(index, 1);
         if(this.isOwner){
           this.settingForm.show = true;
         }
