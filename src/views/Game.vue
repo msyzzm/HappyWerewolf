@@ -219,6 +219,8 @@
 }
 </style>
 <script>
+import * as NoSleep from 'nosleep.js/dist/NoSleep';
+const noSleep = new NoSleep();
 import { RoleList, randomNum } from "../plugins/var";
 import {
   init,
@@ -636,6 +638,7 @@ export default {
       engine.reconnect();
     },
     onSubmit() {
+      noSleep.enable();
       //如果已经登录
       if(this.loginRsp){
         if (this.playerForm.roomSelected == "join") {
@@ -745,10 +748,8 @@ export default {
       //投票提交
       else if (msg.event == GameEvent.VoteSubmit) {
         //处理投票结果
-        if(msg.selected){
-          this.voteResult[msg.userID] = msg.selected;
-          this.roleVoted(msg.userID);
-        }
+        if(msg.selected) this.voteResult[msg.userID] = msg.selected;
+        this.roleVoted(msg.userID);
         //所有玩家显示通知
         this.$bvToast.toast(this.getUserNameByuserID(msg.userID)+this.$t('vote')+this.$t('success'), {
           title: this.$t('prompt'),
