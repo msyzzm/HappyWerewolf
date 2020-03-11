@@ -1322,7 +1322,7 @@ export default {
 
       //已经开始游戏
       if(this.joinOver){
-        this.roomUserInfoList[index].offline = true;
+        this.roomUserInfoList[index]["offline"] = true;
         if(this.isOwner){
           let role = this.getRoleByuserID(userID);
           if(this.waitRoles.indexOf(role)>-1) this.sendMsg({event: GameEvent.RoleSubmit, role: role});
