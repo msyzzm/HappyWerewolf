@@ -365,6 +365,7 @@ export default {
     }.bind(this);
     response.joinOpenResponse = function(joinOpenRsp) {
       if(joinOpenRsp.status == 200){
+        this.joinOver = false;
         this.$bvToast.toast(this.$t('join_open'), {
           title: 'matchvs',
           autoHideDelay: 2000,
@@ -372,6 +373,7 @@ export default {
       }
     }.bind(this);
     response.joinOpenNotify = function(joinOpenInfo){
+      this.joinOver = false;
       this.$bvToast.toast(this.$t('join_open')+joinOpenInfo.roomID, {
         title: 'matchvs',
         autoHideDelay: 2000,
