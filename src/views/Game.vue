@@ -156,7 +156,7 @@
 
 
     <transition name="slide-fade">
-      <b-card v-show="this.voteShow" no-body>
+      <b-card v-if="this.voteShow" no-body>
         <template v-slot:header v-show="this.voteShow">
           <h3 class="mb-0">投票结果</h3>
         </template>
@@ -165,7 +165,7 @@
             {{getUserNameByuserID(index)+" "+ $t('role.'+roleList.property[getRoleByuserID(index)].name) +" 投票给 " + getUserNameByuserID(value)}}
           </b-list-group-item>
           <b-list-group-item>
-            {{"获得胜利的是：" + getWinner()}}
+            {{winner}}
           </b-list-group-item>
           <b-list-group-item v-show="this.isOwner" button variant="primary" @click="onNewGame">
             {{$t("next_game")}}
@@ -628,7 +628,52 @@ export default {
       let array = Array.from(this.roomUserInfoList)
       array.sort((a,b)=>a.userID-b.userID);
       return array;
-    }
+    },
+    winner(){
+      let userVoted={};
+      for(let userID in this.voteResult){
+        if(userVoted[this.voteResult[userID]] == undefined) userVoted[this.voteResult[userID]] = 1;
+        else userVoted[this.voteResult[userID]]++;
+      }
+      let maxVotedNum = 0;
+      let outUserIDs = [];
+      for(let userID in userVoted){
+        if(userVoted[userID]>maxVotedNum) {
+          maxVotedNum = userVoted[userID];
+          outUserIDs = [userID];
+        }
+        else if(userVoted == maxVotedNum) {
+          outUserIDs.push(userID);
+        }
+      }
+
+      let haveWolf = false;
+      if((this.roleUserMap[RoleList.WereWolf] && this.isPlayer(this.roleUserMap[RoleList.WereWolf].userID)) || (this.roleUserMap[RoleList.WereWolf2] && this.isPlayer(this.roleUserMap[RoleList.WereWolf2].userID))) haveWolf = true;
+      //最多得票数为1，无人出局
+      if(maxVotedNum == 1){
+        let text = "无人出局，"
+        if(haveWolf) return text+"狼人阵营获胜";
+        else return text+"村民阵营获胜";
+      }
+      //有人出局，有狼人，狼人出局则村民胜利，狼人没出局则狼人胜利；没有狼人，如果有爪牙没出局则狼人胜利，否则无人胜利。
+      else{
+        let text = "出局玩家：";
+        let isWolfOut = false;
+        let isMinionOut = false;
+        for(let userID of outUserIDs){
+          text += this.getUserNameByuserID(userID);
+          text += "，"
+          let role = this.getRoleByuserID(userID);
+          if(role == RoleList.WereWolf || role == RoleList.WereWolf2) isWolfOut = true;
+          else if(role == RoleList.Minion) isMinionOut = true;
+        }
+
+        if(haveWolf && isWolfOut) return text+"村民阵营获胜";
+        else if(haveWolf && !isWolfOut) return text+"狼人阵营获胜";
+        else if(!haveWolf && (this.roleUserMap[RoleList.Minion]&&this.isPlayer(this.roleUserMap[RoleList.Minion].userID)&&!isMinionOut)) text+"狼人阵营获胜";
+        return text+"无人获胜";
+      }
+    },
   },
   methods: {
     onReconnect(){
@@ -1237,29 +1282,6 @@ export default {
     },
     isPlayer(userID){
       if(userID) return userID.toString().indexOf("no-player") < 0;
-    },
-    getWinner(){
-      let userVoted={};
-      for(let userID in this.voteResult){
-        if(userVoted[userID] == undefined) userVoted[userID] = 1;
-        else userVoted[userID]++;
-      }
-      let maxVotedNum = 0;
-      let outUserIDs = [];
-      for(let userID in userVoted){
-        if(userVoted[userID]>maxVotedNum) {
-          maxVotedNum = userVoted.userID;
-          outUserIDs = [userID];
-        }
-        else if(userVoted == maxVotedNum) {
-          outUserIDs.push(userID);
-        }
-      }
-      for(let userID in outUserIDs){
-        let role = this.getRoleByuserID(userID);
-        if(role == RoleList.WereWolf || role == RoleList.WereWolf2) return "村民阵营";
-      }
-      return "狼人阵营";
     },
     // 刷新或关闭页面时
     updateHandler(){
