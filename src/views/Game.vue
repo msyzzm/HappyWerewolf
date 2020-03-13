@@ -2,6 +2,15 @@
   <b-container>
     <b-card-group columns>
       <transition name="slide-fade">
+        <b-card v-show="this.reconnectShow">
+          <template v-slot:header v-show="this.voteShow">
+            <h3 class="mb-0">与服务器断开链接</h3>
+          </template>
+          <b-button @click="onReconnect" variant="danger">重连</b-button>
+        </b-card>
+      </transition>
+
+      <transition name="slide-fade">
         <b-card v-show="playerForm.show">
           <template v-slot:header>
             <h3 class="mb-0">开始游戏</h3>
@@ -36,6 +45,7 @@
               <b-button v-for="(value,index) in this.orderRoomUserInfoList" :key="index">
                 {{(index+1) +"号玩家 " + value.userProfile + (value.offline ? "已离开" : "")}}
               </b-button>
+              <b-button variant="danger" @click="onLeaveRoom">{{$t("leave_room")}}</b-button>
             </b-button-group>
           </b-card-text>
         </b-card>
@@ -89,7 +99,7 @@
     <transition name="slide-fade">
       <b-card v-show="playerPanel.show">
         <template v-slot:header>
-          <h3 class="mb-0">操作</h3>
+          <h3 class="mb-0">夜晚</h3>
         </template>
         <b-card-text style="white-space: pre;">{{playerPanel.text}}</b-card-text>
         
@@ -173,16 +183,6 @@
         </b-list-group>
       </b-card>
     </transition>
-
-    <transition name="slide-fade">
-      <b-card v-show="this.reconnectShow">
-        <template v-slot:header v-show="this.voteShow">
-          <h3 class="mb-0">与服务器断开链接</h3>
-        </template>
-        <b-button @click="onReconnect" variant="danger">重连</b-button>
-      </b-card>
-    </transition>
-
     <transition name="slide-fade">
       <b-card header="Debug" :style="debugStyle">
         <b-button v-b-toggle.collapse-debug>Debug</b-button>
@@ -201,6 +201,7 @@
       </b-card>
     </transition>
     </b-card-group>
+    <audio src="/bird.mp3" ref="leaveAudio"></audio>
   </b-container>
 </template>
 <style lang="scss" scoped>
@@ -245,6 +246,7 @@ export default {
           title: 'matchvs',
           autoHideDelay: 2000,
         })
+        engine.registerUser();
       }
     }.bind(this);
     response.registerUserResponse = function(registerRsp) {
@@ -261,34 +263,13 @@ export default {
     response.loginResponse = function(loginRsp) {
       this.loginRsp = loginRsp;
       if(loginRsp.status == 200){
-        engine.setReconnectTimeout(-1) //房间重连超时
-        engine.setTeamReconnectTimeout(-1) //组队重连超时
+        engine.setReconnectTimeout(30) //房间重连超时
+        engine.setTeamReconnectTimeout(30) //组队重连超时
         this.$bvToast.toast(this.$t('login')+this.$t('success'), {
           title: 'matchvs',
           autoHideDelay: 2000,
         });
-        //如果有房间ID则重新连接
-        if(loginRsp.roomID != 0){
-          engine.reconnect();
-          this.$bvToast.toast("重新连接房间", {
-            title: 'matchvs',
-            autoHideDelay: 2000,
-          });
-        }
-        else if (this.playerForm.roomSelected == "join") {
-          engine.joinRoom(this.playerForm.roomID, this.playerForm.name);
-        } 
-        else {
-          let createRoomInfo = {
-            roomName: "Let's go!",
-            maxPlayer: 20,
-            mode: 1,
-            canWatch: 2,
-            visibility: 1,
-            roomProperty: "roomProperty"
-          };
-          engine.createRoom(createRoomInfo, this.playerForm.name);
-        }
+        if(loginRsp.roomID && loginRsp.roomID != "0") this.reconnectShow = true;
       }
     }.bind(this);
     response.createRoomResponse = function(response) {
@@ -300,6 +281,7 @@ export default {
 
         this.roomInfo.roomID = response.roomID;
         this.roomInfo.owner = response.owner;
+        this.roomUserInfoList = [];
         this.roomUserInfoList.push({
           userID: this.registerRsp.userID,
           userProfile: this.playerForm.name
@@ -311,7 +293,7 @@ export default {
         //复制房间ID到剪贴板
         const input = document.createElement('input');
         input.setAttribute('readonly', 'readonly');
-        input.setAttribute('value', response.roomID);
+        input.setAttribute('value', window.location.href+"room/"+response.roomID);
         document.body.appendChild(input);
         input.select();
         if (document.execCommand('copy')) {
@@ -386,6 +368,11 @@ export default {
           title: 'matchvs',
           autoHideDelay: 2000,
         })
+        this.playerForm.show = true;
+        this.playerInfo.show = false;
+        this.settingForm.show = false;
+        this.playerPanel.show = false;
+        this.voteForm.show = false;
       }
     }.bind(this);
     response.leaveRoomNotify = function(leaveRoomInfo) {
@@ -404,14 +391,14 @@ export default {
       //其他错误码无法处理
     }.bind(this);
 
-    response.reconnectResponse = function(status,roomUserInfoList,roomInfo){
+    response.reconnectResponse = function(status){
       let text;
       switch(status){
         case 200:
           text = "重连成功"
-          this.roomUserInfoList = roomUserInfoList;
-          this.roomInfo = roomInfo;
-          // TODO 进入游戏中
+          this.reconnectShow = false;
+          this.sendMsg({event: GameEvent.Reconnect});
+          
           break;
         case 201:
           text = "重连房间失败，但已登录";
@@ -437,6 +424,7 @@ export default {
       switch(networkStateInfo.state){
         case 1:
           text = "网络异常，正在重连";
+          this.$refs.leaveAudio.play();
           break;
         case 2:
           text = "重连成功";
@@ -451,14 +439,15 @@ export default {
         title: 'matchvs',
         autoHideDelay: 5000,
       });
+      
+      this.roomInfo.owner = networkStateInfo.owner;
       if(networkStateInfo.state > 2) this.onPlayerLeaveRoom(networkStateInfo.userID,networkStateInfo.owner);
     }.bind(this);
 
     //发送消息Response
     response.sendEventResponse = function(sendEventResponse) {
       if (sendEventResponse.status == 200) {
-        let msg = this.sentMsg[sendEventResponse.sequence];
-        delete this.sentMsg[sendEventResponse.sequence];
+        let msg = this.sentMsgs[sendEventResponse.sequence];
         this.receiveMsg(msg);
       }
     }.bind(this);
@@ -469,6 +458,7 @@ export default {
         if(k === "Role") return Number(v);
         return v;
       });
+      msg["srcUserID"] = sendEventNotify.srcUserID;
       this.receiveMsg(msg);
     }.bind(this);
 
@@ -499,7 +489,7 @@ export default {
         name: process.env.NODE_ENV == "production" ? "" : randomNum(100,999).toString(),
         roomOptions: this.$t("rooms"),
         roomSelected: "join",
-        roomID: ""
+        roomID: this.$route.params.roomID,
       },
       playerInfo:{
         show: false
@@ -522,7 +512,8 @@ export default {
       },
       originRoleUserMap:{},
       roleUserMap: {},
-      sentMsg: {},
+      sentMsgs: {},
+      receivedMsgs: [],
       playerRole: 1,
       playerPanel: {
         show: false,
@@ -627,8 +618,8 @@ export default {
       return false;
     },
     orderRoomUserInfoList(){
-      let array = Array.from(this.roomUserInfoList)
-      array.sort((a,b)=>a.userID-b.userID);
+      let array = Array.from(this.roomUserInfoList);
+      array.sort((a,b)=>a.userProfile[0]-b.userProfile[0]);
       return array;
     },
     winner(){
@@ -651,6 +642,8 @@ export default {
 
       let haveWolf = false;
       if((this.roleUserMap[RoleList.WereWolf] && this.isPlayer(this.roleUserMap[RoleList.WereWolf].userID)) || (this.roleUserMap[RoleList.WereWolf2] && this.isPlayer(this.roleUserMap[RoleList.WereWolf2].userID))) haveWolf = true;
+      let haveMinion = false;
+      if((this.roleUserMap[RoleList.Minion] && this.isPlayer(this.roleUserMap[RoleList.Minion].userID))) haveMinion = true;
       //最多得票数为1，无人出局
       if(maxVotedNum == 1){
         let text = "无人出局，"
@@ -672,7 +665,8 @@ export default {
 
         if(haveWolf && isWolfOut) return text+"村民阵营获胜";
         else if(haveWolf && !isWolfOut) return text+"狼人阵营获胜";
-        else if(!haveWolf && (this.roleUserMap[RoleList.Minion]&&this.isPlayer(this.roleUserMap[RoleList.Minion].userID)&&!isMinionOut)) text+"狼人阵营获胜";
+        else if(!haveWolf && isMinionOut) text+"村民阵营获胜";
+        else if(!haveWolf && haveMinion && !isMinionOut) text+"爪牙获胜";
         return text+"无人获胜";
       }
     },
@@ -681,46 +675,22 @@ export default {
     onReconnect(){
       //进行重连
       engine.reconnect();
+      this.$bvToast.toast("重新连接房间", {
+        title: 'matchvs',
+        autoHideDelay: 2000,
+      });
+    },
+    onLeaveRoom(){
+      engine.leaveRoom("走了");
     },
     onSubmit() {
+      this.clearInGameData();
       noSleep.enable();
+      this.reconnectShow = false;
       //如果已经登录
       if(this.loginRsp){
         if (this.playerForm.roomSelected == "join") {
-          let res = engine.joinRoom(this.playerForm.roomID, this.playerForm.name);
-          let text;
-          switch(res){
-            case 0:
-              text="发起登录请求";
-              break
-            case -1:
-              text="失败";
-              break
-            case -2:
-              text="未初始化";
-              break
-            case -3:
-              text="正在初始化";
-              break
-            case -4:
-              text="未登录";
-              break
-            case -7:
-              text="正在创建或者进入房间";
-              break
-            case -8:
-              text="已经在房间中";
-              break
-            case -21:
-              text="已经在房间中";
-              break
-            default:
-              text="未知"
-          }
-          this.$bvToast.toast(text, {
-            title: this.$t('prompt'),
-            autoHideDelay: 2000,
-          });
+          engine.joinRoom(this.playerForm.roomID, this.playerForm.name);
         } else {
           let createRoomInfo = {
             roomName: "Let's go!",
@@ -744,9 +714,10 @@ export default {
     },
     sendMsg(msg) {
       let sent = engine.sendEvent(JSON.stringify(msg));
-      this.sentMsg[sent.sequence] = msg;
+      this.sentMsgs[sent.sequence] = msg;
     },
     receiveMsg(msg) {
+      this.receivedMsgs.push(msg);
       if (msg.event == GameEvent.GameStart) {
         this.onMvGameStart(msg.roleUserMap);
         this.$bvToast.toast(this.$t('start_game'), {
@@ -787,14 +758,23 @@ export default {
         this.startDiscuss(msg);
         this.$bvToast.toast(this.$t('start_discuss'), {
           title: this.$t('prompt'),
-          autoHideDelay: 2000,
+          autoHideDelay: 5000,
         })
       }
       //投票提交
       else if (msg.event == GameEvent.VoteSubmit) {
         //处理投票结果
         if(msg.selected) this.voteResult[msg.userID] = msg.selected;
-        this.roleVoted(msg.userID);
+        let i = this.waitUsers.indexOf(msg.userID);
+        if(i>-1) this.waitUsers.splice(i, 1);
+        //等待列表为空，进行投票结算，通知投票结果
+        if (this.waitUsers.length == 0 && this.isOwner) {
+          this.sendMsg({
+            event: GameEvent.VoteResult,
+            result: this.voteResult,
+            roleUserMap: this.roleUserMap,
+          })
+        }
         //所有玩家显示通知
         this.$bvToast.toast(this.getUserNameByuserID(msg.userID)+this.$t('vote')+this.$t('success'), {
           title: this.$t('prompt'),
@@ -809,32 +789,7 @@ export default {
       }
       //新游戏
       else if (msg.event == GameEvent.New){
-        this.originRoleUserMap = {};
-        this.roleUserMap = {};
-        this.sentMsg = {};
-        this.playerRole = 1;
-        this.playerPanel.show = false;
-        this.playerPanel.text = "";
-        this.wolfForm.options = [];
-        this.wolfForm.selected = "";
-        this.seerForm.options = [];
-        this.seerForm.selected = [];
-        this.robberForm.options = [];
-        this.robberForm.selected = [];
-        this.troubleMakerForm.options = [];
-        this.troubleMakerForm.selected = [];
-        this.drunkForm.options = [];
-        this.drunkForm.selected = "";
-        this.witchForm.options = [];
-        this.witchForm.selected = [];
-        this.voteForm.options = [];
-        this.voteForm.selected = "";
-        this.totalRoles = [];
-        this.waitRoles = [];
-        this.waitUsers = [];
-        this.roleSubmit = {};
-        this.voteResult = {};
-        this.voteShow = false;
+        this.clearInGameData();
       }
       else if(msg.event == GameEvent.JoinRoomNotify){
         this.receiveJoinRoomNotify(msg.roomUserInfo);
@@ -842,19 +797,43 @@ export default {
       else if(msg.event == GameEvent.JoinOverNotify){
         this.receiveJoinOverNotify(msg.joinOverInfo);
       }
-    },
-    //角色投票
-    roleVoted(userID){
-      //等待列表中剔除角色
-      let i = this.waitUsers.indexOf(userID);
-      this.waitUsers.splice(i, 1);
-      //等待列表为空，进行投票结算，通知投票结果
-      if (this.waitUsers.length == 0 && this.isOwner) {
-        this.sendMsg({
-          event: GameEvent.VoteResult,
-          result: this.voteResult,
-          roleUserMap: this.roleUserMap,
-        })
+      else if(msg.event == GameEvent.Reconnect){
+        if(this.isOwner){
+          this.sendMsg({
+            event: GameEvent.ReconnectRsp,
+            userID: msg.srcUserID,
+            roomUserInfoList: this.roomUserInfoList,
+            roomInfo: this.roomInfo,
+            roleUserMap: this.roleUserMap,
+            originRoleUserMap: this.originRoleUserMap,
+          });
+          let role = this.getRoleByuserID(msg.srcUserID);
+          for(let msg of this.receivedMsgs){
+            if(msg.roles && msg.roles.indexOf(role)>-1){
+              this.sendMsg(msg);
+              break;
+            }
+          }
+        }
+      }
+      else if(msg.event == GameEvent.ReconnectRsp && this.registerRsp.userID == msg.userID){
+        this.roomUserInfoList = msg.roomUserInfoList;
+        this.roomInfo = msg.roomInfo;
+        this.roleUserMap = msg.roleUserMap;
+        this.originRoleUserMap = msg.originRoleUserMap;
+        this.playerRole = this.getRoleByuserID(this.registerRsp.userID);
+        this.playerInfo.show = true;
+        this.playerPanel.show = true;
+        this.voteForm.show = true;
+        this.voteForm.options = [];
+        this.joinOver = true;
+        this.playerForm.show = false;
+        for (let userInfo of this.roomUserInfoList) {
+          this.voteForm.options.push({
+            text: userInfo.userProfile,
+            value: userInfo.userID
+          });
+        }
       }
     },
     //检查是否需要等待
@@ -876,7 +855,7 @@ export default {
           }
           // 预言家
           else if (role == RoleList.Seer) {
-            if(this.roleSubmit[role].length == 0) continue;
+            if(this.roleSubmit[role] == undefined || this.roleSubmit[role].length == 0) continue;
             let msg = {
               event: GameEvent.RoleResult,
               roles: [RoleList.Seer],
@@ -891,7 +870,7 @@ export default {
           // 强盗
           else if (role == RoleList.Robber) {
             //不换身份
-            if(this.roleSubmit[role].length == 0) continue;
+            if(this.roleSubmit[role] == undefined || this.roleSubmit[role].length == 0) continue;
             //换身份
             let robberID = this.originRoleUserMap[role].userID;
             this.exchangeRole(this.roleSubmit[role],robberID);
@@ -905,7 +884,7 @@ export default {
           // 捣蛋鬼
           else if(role == RoleList.TroubleMaker){
             //不换身份
-            if(this.roleSubmit[role].length == 0) continue;
+            if(this.roleSubmit[role] == undefined || this.roleSubmit[role].length == 0) continue;
             //换身份
             this.exchangeRole(this.roleSubmit[role][0],this.roleSubmit[role][1]);
             let msg = {
@@ -938,7 +917,7 @@ export default {
           // 女巫
           else if(role == RoleList.Witch){
             //不换身份
-            if(this.roleSubmit[role].length == 0) continue;
+            if(this.roleSubmit[role] == undefined || this.roleSubmit[role].length == 0) continue;
             //换身份
             let noPlayerIndex = this.isPlayer(this.roleSubmit[role][0]) ? 1 : 0;
             let noPlayerRole = this.getRoleByuserID(this.roleSubmit[role][noPlayerIndex]);
@@ -946,7 +925,7 @@ export default {
             let msg = {
               event: GameEvent.RoleResult,
               roles: [RoleList.Witch],
-              result: "你将非玩家身份 "+ this.$t('role.'+RoleList.property[noPlayerRole].name) +" 给了 "+this.getUserNameByuserID(this.roleSubmit[role][noPlayerIndex==0?1:0])+"\n",
+              result: "你将场外身份 "+ this.$t('role.'+RoleList.property[noPlayerRole].name) +" 给了 "+this.getUserNameByuserID(this.roleSubmit[role][noPlayerIndex==0?1:0])+"\n",
             }
             this.sendMsg(msg);
           }
@@ -968,7 +947,7 @@ export default {
 
       //计算结算顺序
       let roleSelected = Array.from(this.settingForm.roleSelected);
-      //过滤掉非玩家角色
+      //过滤掉场外角色
       roleSelected = roleSelected.filter(role=>{
         if(!this.isPlayer(this.roleUserMap[role].userID)) return false;
         return true;
@@ -1011,12 +990,7 @@ export default {
       this.settingForm.show = false;
       this.roleUserMap = roleUserMap;
       this.originRoleUserMap = JSON.parse(JSON.stringify(roleUserMap));
-      for (let role in roleUserMap) {
-        //当前玩家的角色
-        if (this.registerRsp.userID == roleUserMap[role].userID) {
-          this.playerRole = Number(role);
-        }
-      }
+      this.playerRole = Number(this.getRoleByuserID(this.registerRsp.userID));
       this.playerPanel.show = true;
 
       //玩家是村民
@@ -1034,7 +1008,7 @@ export default {
         let wolfRoles = this.getWolfRoles();
         // 场上只有一狼
         if (wolfRoles.length == 1) {
-          this.playerPanel.text = "你没有队友，查看一张非玩家牌\n";
+          this.playerPanel.text = "你没有队友，查看一个场外身份\n";
           for (let roleUser in roleUserMap) {
             if (this.isPlayer(roleUserMap[roleUser].userID)) continue;
             this.wolfForm.options.push({
@@ -1070,18 +1044,19 @@ export default {
       }
       // 玩家是预言家
       else if (this.playerRole == RoleList.Seer) {
-        this.playerPanel.text = "夜晚行动\n";
+        this.playerPanel.text = "选择两个场外身份，或者一个场上玩家，你将会看到选择的身份是什么\n";
         for (let roleUser in roleUserMap) {
           this.seerForm.options.push({
             text: roleUserMap[roleUser].userProfile,
             value: roleUserMap[roleUser].userID
           });
         }
+        this.seerForm.options.sort();
         this.seerForm.show = true;
       }
       // 玩家是强盗
       else if (this.playerRole == RoleList.Robber) {
-        this.playerPanel.text = "夜晚行动\n";
+        this.playerPanel.text = "选择一个场上玩家，将会交换你和他的身份；或者不选\n";
         for (let roleUser in roleUserMap) {
           if (
             roleUserMap[roleUser].userID == this.registerRsp.userID ||
@@ -1097,7 +1072,7 @@ export default {
       }
       // 玩家是捣蛋鬼
       else if(this.playerRole == RoleList.TroubleMaker){
-        this.playerPanel.text = "夜晚行动\n";
+        this.playerPanel.text = "选择两个场上玩家，将会交换他们的身份；或者不选\n";
         for (let roleUser in roleUserMap) {
           if (
             roleUserMap[roleUser].userID == this.registerRsp.userID ||
@@ -1113,7 +1088,7 @@ export default {
       }
       // 酒鬼
       else if(this.playerRole == RoleList.Drunk){
-        this.playerPanel.text = "夜晚行动\n";
+        this.playerPanel.text = "选择一个场上玩家，你将和这个玩家交换身份\n";
         for (let roleUser in roleUserMap) {
           if (
             roleUserMap[roleUser].userID == this.registerRsp.userID ||
@@ -1129,7 +1104,7 @@ export default {
       }
       // 女巫
       else if(this.playerRole == RoleList.Witch){
-        this.playerPanel.text = "夜晚行动\n";
+        this.playerPanel.text = "选择一个场外身份和一个场上玩家，将会交换他们的身份；或者不选\n";
         for (let roleUser in roleUserMap) {
           if (roleUserMap[roleUser].userID == this.registerRsp.userID) continue;
           this.witchForm.options.push({
@@ -1153,7 +1128,11 @@ export default {
       for(let user of this.roomUserInfoList){
         if(!user.offline) this.waitUsers.push(user.userID);
       }
-      this.playerPanel.text += "开始讨论吧~\n从玩家列表中第"+ msg.num+"位玩家开始，按顺序发言\n讨论结束后，在下方选择玩家并投票";
+
+      this.$bvToast.toast("开始讨论吧~\n "+ msg.num+"号玩家开始，按顺序发言\n讨论结束后，在下方选择玩家并投票", {
+        title: 'matchvs',
+        autoHideDelay: 2000,
+      })
     },
     showVoteResult(){
       this.voteShow = true;
@@ -1255,7 +1234,7 @@ export default {
     getRoleByuserID(userID) {
       for (let role in this.roleUserMap) {
         if (userID == this.roleUserMap[role].userID) {
-          return role;
+          return Number(role);
         }
       }
     },
@@ -1289,7 +1268,7 @@ export default {
     updateHandler(){
       //游戏已经开始
       if(this.joinOver){
-        this.sentMsg({event: GameEvent.LeaveRoomInGame, userID: this.registerRsp.userID})
+        // 其他玩家会收到消息提示，不需要处理
       }else{
         engine.leaveRoom("走了");
       }
@@ -1360,6 +1339,37 @@ export default {
           this.settingForm.show = true;
         }
       }
+    },
+    clearInGameData(){
+      this.originRoleUserMap = {};
+      this.roleUserMap = {};
+      this.sentMsgs = {};
+      this.receivedMsg = [];
+      this.playerRole = 1;
+      this.playerPanel.show = false;
+      this.playerPanel.text = "";
+      this.wolfForm.options = [];
+      this.wolfForm.selected = "";
+      this.seerForm.options = [];
+      this.seerForm.selected = [];
+      this.robberForm.options = [];
+      this.robberForm.selected = [];
+      this.troubleMakerForm.options = [];
+      this.troubleMakerForm.selected = [];
+      this.drunkForm.options = [];
+      this.drunkForm.selected = "";
+      this.witchForm.options = [];
+      this.witchForm.selected = [];
+      this.voteForm.options = [];
+      this.voteForm.selected = "";
+      this.totalRoles = [];
+      this.waitRoles = [];
+      this.waitUsers = [];
+      this.roleSubmit = {};
+      this.voteResult = {};
+      this.voteShow = false;
+      //清除已离开玩家
+      this.roomUserInfoList = this.roomUserInfoList.filter(user=> !user.offline);
     }
   }
 };
