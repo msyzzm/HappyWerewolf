@@ -619,7 +619,7 @@ export default {
     },
     orderRoomUserInfoList(){
       let array = Array.from(this.roomUserInfoList);
-      array.sort((a,b)=>a.userProfile[0]-b.userProfile[0]);
+      array.sort((a,b)=>a.userID-b.userID[0]);
       return array;
     },
     winner(){
