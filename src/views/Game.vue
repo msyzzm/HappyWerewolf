@@ -215,7 +215,7 @@
       </b-card>
     </transition>
     </b-card-group>
-    <audio src="/bird.mp3" ref="leaveAudio"></audio>
+    <audio src="/offline.mp3" ref="leaveAudio"></audio>
   </b-container>
 </template>
 <style lang="scss" scoped>
@@ -399,7 +399,7 @@ export default {
         autoHideDelay: 5000,
       })
       //网络错误，提示重连
-      if(errCode == 1001){
+      if(errCode > 1000){
         this.reconnectShow = true;
         this.$refs.leaveAudio.play();
       }
