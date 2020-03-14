@@ -2,11 +2,6 @@
   <div class="about">
     <b-container>
       <b-row>
-        <b-col cols="12" lg="12">
-          <b-card title="简介">
-            <p>为什么叫快乐狼人？一是快，一个黑夜和白天就结束，没有人打酱油；另一个是乐，和狼人杀不同，这不是破案游戏，而是演戏和撕逼游戏。</p>
-          </b-card>
-        </b-col>
         <b-col class="my-2" cols="12" lg="6">
           <b-list-group>
             <b-list-group-item><h2>游戏特色</h2></b-list-group-item>

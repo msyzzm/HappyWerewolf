@@ -42,8 +42,8 @@
           <b-card-text>
             <h6>玩家列表</h6>
             <b-button-group vertical>
-              <b-button v-for="(value,index) in this.orderRoomUserInfoList" :key="index">
-                {{(index+1) +"号玩家 " + value.userProfile + (value.offline ? "已离开" : "")}}
+              <b-button v-for="(value,index) in orderRoomUserInfoList" :key="index">
+                {{(index+1) +"号玩家 " + value.userProfile + (value.offline ? "（已离开）" : "")}}
               </b-button>
               <b-button variant="danger" @click="onLeaveRoom">{{$t("leave_room")}}</b-button>
             </b-button-group>
@@ -58,9 +58,10 @@
         </template>
         <b-form id="setting-from" @submit.prevent="onStartGame">
           <b-form-group
-            :invalid-feedback="'当前玩家数量为'+this.playerNumber+'，请设置角色数量'+(this.playerNumber+3)"
+            :invalid-feedback="'当前玩家数量为'+playerNumber+'，请设置角色数量'+(playerNumber+3)"
             :valid-feedback="'数量正确'"
-            :state="settingFormState">
+            :state="settingFormState"
+            label="设置游戏身份">
             <b-form-checkbox-group
               v-model="settingForm.roleSelected"
               :options="settingForm.roleOptions"
@@ -69,7 +70,10 @@
               stacked
             ></b-form-checkbox-group>
           </b-form-group>
-          <b-button type="submit" variant="primary">{{this.$t("start_game")}}</b-button>
+          <b-form-group label="设置游戏时间（分钟）">
+            <b-form-input v-model="settingForm.time" :state="settingFormTimeState" placeholder="请输入数字" required></b-form-input>
+          </b-form-group>
+          <b-button type="submit" variant="primary">{{$t("start_game")}}</b-button>
         </b-form>
       </b-card>
     </transition>
@@ -78,12 +82,16 @@
       <b-card v-show="playerPanel.show">
         <template v-slot:header>
           <h3 class="mb-0">本局游戏身份</h3>
-          <h4>夜晚行动的角色顺序与此相同</h4>
         </template>
-        
+        <b-card-text>
+          夜晚行动顺序与此相同
+        </b-card-text>
+        <b-card-text>
+          鼠标悬停或手指点击可查看身份说明
+        </b-card-text>
         <b-card-text>
           <b-button-group vertical>
-            <b-button v-for="(value,index) in this.roleUserMap" :key="index" v-b-tooltip.hover :title="$t('role_des.'+roleList.property[index].name)">
+            <b-button v-for="(value,index) in roleUserMap" :key="index" v-b-tooltip.hover :title="$t('role_des.'+roleList.property[index].name)">
               {{$t('role.'+roleList.property[index].name)}}
             </b-button>
           </b-button-group>
@@ -147,7 +155,14 @@
         </b-form>
       </b-card>
     </transition>
-
+    <transition name="slide-fade">
+      <b-card v-if="timeLimit">
+        <template v-slot:header>
+          <h3 class="mb-0">白天</h3>
+        </template>
+        <b-progress :value="timeLeft" :max="timeLimit" show-value animated></b-progress>
+      </b-card>
+    </transition>
 
     <transition name="slide-fade">
       <b-card v-show="voteForm.show">
@@ -163,7 +178,6 @@
         </b-form>
       </b-card>
     </transition>
-
 
     <transition name="slide-fade">
       <b-card v-if="this.voteShow" no-body>
@@ -222,7 +236,7 @@
 <script>
 import * as NoSleep from 'nosleep.js/dist/NoSleep';
 const noSleep = new NoSleep();
-import { RoleList, randomNum } from "../plugins/var";
+import { RoleList, randomNum, ReconnectTimeOut } from "../plugins/var";
 import {
   init,
   engine,
@@ -263,8 +277,8 @@ export default {
     response.loginResponse = function(loginRsp) {
       this.loginRsp = loginRsp;
       if(loginRsp.status == 200){
-        engine.setReconnectTimeout(30) //房间重连超时
-        engine.setTeamReconnectTimeout(30) //组队重连超时
+        engine.setReconnectTimeout(ReconnectTimeOut) //房间重连超时
+        engine.setTeamReconnectTimeout(ReconnectTimeOut) //组队重连超时
         this.$bvToast.toast(this.$t('login')+this.$t('success'), {
           title: 'matchvs',
           autoHideDelay: 2000,
@@ -387,6 +401,7 @@ export default {
       //网络错误，提示重连
       if(errCode == 1001){
         this.reconnectShow = true;
+        this.$refs.leaveAudio.play();
       }
       //其他错误码无法处理
     }.bind(this);
@@ -497,7 +512,8 @@ export default {
       settingForm: {
         show: false,
         roleOptions: [],
-        roleSelected: []
+        roleSelected: [],
+        time: 20,
       },
       registerRsp: null,
       loginRsp: null,
@@ -557,6 +573,9 @@ export default {
       totalRoles: [],
       waitRoles: [],
       waitUsers: [],
+      timeLimit: 0,
+      timeLeft: 0,
+      timer: null,
       roleSubmit: {},
       voteResult: {},
       voteShow: false,
@@ -578,6 +597,10 @@ export default {
     settingFormState(){
       if(this.settingForm.roleSelected.length == (this.playerNumber+3)) return true;
       return false;
+    },
+    settingFormTimeState(){
+      if(this.settingForm.time<10) return false;
+      return true;
     },
     wolfFormState(){
       if(this.wolfForm.selected) return true;
@@ -619,7 +642,7 @@ export default {
     },
     orderRoomUserInfoList(){
       let array = Array.from(this.roomUserInfoList);
-      array.sort((a,b)=>a.userID-b.userID[0]);
+      array.sort((a,b)=>a.userID-b.userID);
       return array;
     },
     winner(){
@@ -720,6 +743,7 @@ export default {
       this.receivedMsgs.push(msg);
       if (msg.event == GameEvent.GameStart) {
         this.onMvGameStart(msg.roleUserMap);
+        this.timeLeft = this.timeLimit = msg.timeLimit;
         this.$bvToast.toast(this.$t('start_game'), {
           title: this.$t('prompt'),
           autoHideDelay: 2000,
@@ -756,6 +780,9 @@ export default {
       //开始讨论
       else if (msg.event == GameEvent.DiscussStart){
         this.startDiscuss(msg);
+        this.timer = setInterval(function(){
+          this.countDown()
+        }.bind(this),60000);
         this.$bvToast.toast(this.$t('start_discuss'), {
           title: this.$t('prompt'),
           autoHideDelay: 5000,
@@ -785,6 +812,7 @@ export default {
       else if (msg.event == GameEvent.VoteResult){
         this.voteResult = msg.result;
         this.roleUserMap = msg.roleUserMap;
+        clearInterval(this.timer);
         this.showVoteResult();
       }
       //新游戏
@@ -849,7 +877,7 @@ export default {
             let msg = {
               event: GameEvent.RoleResult,
               roles: [RoleList.WereWolf,RoleList.WereWolf2],
-              result: "这张牌是："+this.$t("role."+RoleList.property[this.getRoleByuserID(selected)].name)+"\n"
+              result: "这个身份是："+this.$t("role."+RoleList.property[this.getRoleByuserID(selected)].name)+"\n"
             }
             this.sendMsg(msg);
           }
@@ -930,18 +958,23 @@ export default {
             this.sendMsg(msg);
           }
         }
-        let msg = { event: GameEvent.DiscussStart, num: randomNum(1, this.roomUserInfoList.length+1) };
+        let msg = { 
+            event: GameEvent.DiscussStart, 
+            num: randomNum(1, this.roomUserInfoList.length+1),
+          };
         this.sendMsg(msg);
       }
     },
     //房主点击开始按钮
     onStartGame() {
       if(!this.settingFormState) return;
+      if(!this.settingFormTimeState) return;
       engine.joinOver("Start Game!");
       this.createRoleUserMap();
       let msg = {
         event: GameEvent.GameStart,
-        roleUserMap: this.roleUserMap
+        roleUserMap: this.roleUserMap,
+        timeLimit: this.settingForm.time,
       };
       this.sendMsg(msg);
 
@@ -999,7 +1032,7 @@ export default {
         this.playerRole == RoleList.Villager2 ||
         this.playerRole == RoleList.Villager3
       ) {
-        this.playerPanel.text = "等待黎明到来\n";
+        this.playerPanel.text = "等待黎明到来";
       } 
       // 玩家是狼
       else if (
@@ -1008,7 +1041,7 @@ export default {
         let wolfRoles = this.getWolfRoles();
         // 场上只有一狼
         if (wolfRoles.length == 1) {
-          this.playerPanel.text = "你没有队友，查看一个场外身份\n";
+          this.playerPanel.text = "你没有队友，选择一个场外身份，你将会看到选择的身份是什么\n";
           for (let roleUser in roleUserMap) {
             if (this.isPlayer(roleUserMap[roleUser].userID)) continue;
             this.wolfForm.options.push({
@@ -1104,7 +1137,7 @@ export default {
       }
       // 女巫
       else if(this.playerRole == RoleList.Witch){
-        this.playerPanel.text = "选择一个场外身份和一个场上玩家，将会交换他们的身份；或者不选\n";
+        this.playerPanel.text = "选择一个场外身份和一个场上玩家，将会交换他们的身份，同时看到选择的场外身份是什么；或者不选\n";
         for (let roleUser in roleUserMap) {
           if (roleUserMap[roleUser].userID == this.registerRsp.userID) continue;
           this.witchForm.options.push({
@@ -1131,7 +1164,7 @@ export default {
 
       this.$bvToast.toast("开始讨论吧~\n "+ msg.num+"号玩家开始，按顺序发言\n讨论结束后，在下方选择玩家并投票", {
         title: 'matchvs',
-        autoHideDelay: 2000,
+        autoHideDelay: 10000,
       })
     },
     showVoteResult(){
@@ -1368,9 +1401,15 @@ export default {
       this.roleSubmit = {};
       this.voteResult = {};
       this.voteShow = false;
+      clearInterval(this.timer);
+      this.timeLimit = this.timeLeft = 0;
       //清除已离开玩家
       this.roomUserInfoList = this.roomUserInfoList.filter(user=> !user.offline);
+    },
+    countDown(){
+      this.timeLeft--;
+      if(this.timeLeft < 1) clearInterval(this.timer);
     }
-  }
+  },
 };
 </script>

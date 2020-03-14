@@ -119,7 +119,10 @@ function randomNum(minNum, maxNum) {
       return 0;
   }
 }
+
+const ReconnectTimeOut = process.env.NODE_ENV == "production" ? 120 : 20;
 export {
+  ReconnectTimeOut,
   RoleList,
   randomNum,
 }

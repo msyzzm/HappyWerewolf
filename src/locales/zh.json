@@ -1,7 +1,7 @@
 {
   "game_name":"快乐狼人",
-  "about":"关于",
-  "submit":"提交",
+  "about":"游戏指南",
+  "submit":"确定",
   "next_game":"再来一局",
   "start_game": "开始游戏",
   "create_room": "创建房间",
